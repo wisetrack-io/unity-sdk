@@ -4,13 +4,11 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
 
 ## Table of Contents
 
-- [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Initialization](#initialization)
 - [Basic Usage](#basic-usage)
   - [Enabling/Disabling Tracking](#enablingdisabling-tracking)
-  - [Requesting App Tracking Transparency (ATT) Permission (iOS)](#requesting-app-tracking-transparency-att-permission-ios)
   - [Starting/Stopping Tracking](#startingstopping-tracking)
   - [Setting Push Notification Tokens](#setting-push-notification-tokens)
   - [Logging Custom Events](#logging-custom-events)
@@ -22,22 +20,12 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
-## Features
-
-- Cross-platform tracking for Android (iOS support coming soon)
-- Support for custom and revenue event logging
-- Push notification token management (FCM for Android)
-- Configurable logging levels
-- Advertising ID retrieval (Ad ID for Android, OAID for non-Google Play devices)
-- Referrer tracking for attribution
-
 ## Requirements
 
 - Unity 2019.4 or later
+- Kotlin version 1.9.0 or later
 - Android API 21 (Lollipop) or later
 - External Dependency Manager for Unity (EDM4U) installed
-- Android Gradle Plugin >= 7.1.0 for full compatibility with Java 17
-- iOS 11.0 or later (support coming soon, not yet implemented)
 
 ## Installation
 
@@ -68,17 +56,7 @@ To integrate the WiseTrack Unity Package into your Unity project, follow these s
    - Ensure all required dependencies are included in your project (see [Feature-Specific Dependencies](#feature-specific-dependencies-android)).
 
 3. **Configure Android**:
-   Ensure your `Assets/Plugins/Android/mainTemplate.gradle` has the following settings:
-
-   ```gradle
-   android {
-       compileSdkVersion 33
-       defaultConfig {
-           minSdkVersion 21
-           targetSdkVersion 33
-       }
-   }
-   ```
+   Ensure your `minSdkVersion` is set to 21 or later
 
    If your app targets non-Google Play stores (e.g., CafeBazaar, Myket), add these permissions to `Assets/Plugins/Android/AndroidManifest.xml`:
 
@@ -87,9 +65,11 @@ To integrate the WiseTrack Unity Package into your Unity project, follow these s
    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
    ```
 
+   Note: to enable `AndroidManifest.xml` ensure `Custom Main Manifest` is checked in Project Settings.
+
    ### Feature-Specific Dependencies (Android)
 
-   The WiseTrack Unity Package supports additional Android features that require specific dependencies. Add only the dependencies for the features you need in `Assets/Plugins/Android/mainTemplate.gradle` under the `dependencies` block. If you encounter issues with `appset` or `ads-identifier` dependencies, consider using the [WiseTrackReferrer Unity Package](https://github.com/wisetrack-io/wisetrack-referrer) as an alternative.
+   The WiseTrack Unity Package supports additional Android features that require specific dependencies. Add only the dependencies for the features you need in `Assets/Plugins/Android/mainTemplate.gradle` under the `dependencies` block. If you encounter issues with `appset` or `ads-identifier` dependencies, consider using the [WiseTrackIdentifier Unity Package](https://github.com/wisetrack-io/unity-identifier) as an alternative.
 
    - **Google Advertising ID (Ad ID)**: Enables retrieval of the Google Advertising ID via `GetAdId()`.
 
@@ -148,15 +128,7 @@ To integrate the WiseTrack Unity Package into your Unity project, follow these s
        apply plugin: 'com.google.gms.google-services'
        ```
 
-4. **Configure iOS**:
-   iOS support is not yet implemented but is coming soon. When available, you will need to add the following to `Assets/Plugins/iOS/Info.plist` for App Tracking Transparency (ATT):
-
-   ```xml
-   <key>NSUserTrackingUsageDescription</key>
-   <string>We use this data to provide a better user experience and personalized ads.</string>
-   ```
-
-5. **Rebuild the Project**:
+4. **Rebuild the Project**:
    Build your project to ensure all dependencies are correctly integrated:
    - In Unity, go to `File > Build Settings` and select your target platform.
    - Click `Build` or `Build and Run`.
@@ -211,18 +183,6 @@ bool isTrackingEnabled = WiseTrackBridge.IsEnabled();
 Debug.Log($"Tracking enabled: {isTrackingEnabled}");
 ```
 
-### Requesting App Tracking Transparency (ATT) Permission (iOS)
-
-For iOS 14+, request user permission for tracking (not yet implemented):
-
-```csharp
-// iOS support coming soon
-bool isAuthorized = WiseTrackBridge.iOSRequestForATT();
-Debug.Log($"Tracking Authorized: {isAuthorized}"); // Placeholder, will return false until implemented
-```
-
-**Note**: iOS support is not yet available. This method will return `false` and log a warning until iOS implementation is complete.
-
 ### Starting/Stopping Tracking
 
 Manually control tracking:
@@ -237,14 +197,11 @@ WiseTrackBridge.StopTracking();
 
 ### Setting Push Notification Tokens
 
-Set FCM tokens for push notifications (Android only):
+Save FCM tokens:
 
 ```csharp
-// Set FCM token (Android)
+// Set FCM token
 WiseTrackBridge.SetFCMToken("your-fcm-token");
-
-// Set APNs token (iOS, not yet implemented)
-WiseTrackBridge.SetAPNSToken("your-apns-token"); // Placeholder, no effect until iOS support is added
 ```
 
 ### Logging Custom Events
@@ -277,13 +234,9 @@ WiseTrackBridge.SetLogLevel(WTLogLevel.Debug); // Options: None, Error, Warning,
 
 ### Retrieving Advertising IDs
 
-Retrieve the Advertising ID (Ad ID) on Android (IDFA for iOS coming soon):
+Retrieve the Advertising ID (Ad ID) on Android:
 
 ```csharp
-// Get IDFA (iOS, not yet implemented)
-string idfa = WiseTrackBridge.GetIdfa();
-Debug.Log($"IDFA: {(string.IsNullOrEmpty(idfa) ? "Not available" : idfa)}"); // Placeholder, returns null until implemented
-
 // Get Ad ID (Android)
 string adId = WiseTrackBridge.GetAdId();
 Debug.Log($"Ad ID: {(string.IsNullOrEmpty(adId) ? "Not available" : adId)}");
@@ -298,7 +251,6 @@ Customize the SDK behavior through the `WTInitialConfig` parameters:
 - `AppToken`: Your unique app token (required).
 - `UserEnvironment`: The environment (`Production`, `Sandbox`).
 - `AndroidStore`: The Android app store (e.g., `PlayStore`, `CafeBazaar`, `Myket`, `Other`).
-- `iOSStore`: The iOS app store (e.g., `AppStore`, `Sibche`, `Sibapp`, `Anardoni`, `Sibirani`, `Sibjo`, `Other`).
 - `TrackingWaitingTime`: Delay before starting tracking (in seconds).
 - `StartTrackerAutomatically`: Whether to start tracking automatically.
 - `CustomDeviceId`: A custom device identifier.
@@ -315,7 +267,6 @@ var config = new WTInitialConfig
     AppToken = "your-app-token",
     UserEnvironment = WTUserEnvironment.Sandbox,
     AndroidStore = WTAndroidStore.PlayStore,
-    iOSStore = WTIOSStore.AppStore,
     TrackingWaitingTime = 3,
     StartTrackerAutomatically = true,
     CustomDeviceId = "custom-device-123",
@@ -330,14 +281,14 @@ WiseTrackBridge.Init(config);
 
 ## Example Project
 
-An example project demonstrating the WiseTrack Unity Package integration is available at [GitHub Repository URL](https://github.com/wisetrack-io/unity-sdk/tree/main/example). Clone the repository and follow the setup instructions to see the package in action.
+A Sample project demonstrating the WiseTrack Unity Package integration is available at [Samples~ Folder](https://github.com/wisetrack-io/unity-sdk/tree/main/Samples~).
 
 ## Troubleshooting
 
 - **SDK not initializing**: Ensure the `AppToken` is correct and the network is reachable.
 - **Logs not appearing**: Set the log level to `WTLogLevel.Debug` and check Console Logs.
 - **Ad ID not available**: Ensure Google Play Services is included and the `play-services-ads-identifier` dependency is added (Android).
-- **Dependency conflicts**: Use EDM4U to resolve conflicts (`Assets > External Dependency Manager > Android Resolver > Resolve`). If issues persist with `appset` or `ads-identifier`, try the [WiseTrackReferrer Unity Package](https://github.com/wisetrack-io/wisetrack-referrer).
+- **Dependency conflicts**: Use EDM4U to resolve conflicts (`Assets > External Dependency Manager > Android Resolver > Resolve`). If issues persist with `appset` or `ads-identifier`, try the [WiseTrackIdentifier Unity Package](https://github.com/wisetrack-io/unity-identifier).
 
 For further assistance, contact support at [support@wisetrack.io](mailto:support@wisetrack.io).
 

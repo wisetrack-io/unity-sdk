@@ -1,9 +1,9 @@
 {
   "name": "io.wisetrack.sdk.unity",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "displayName": "WiseTrack Unity SDK",
   "description": "WiseTrack analytics and attribution SDK for Unity",
-  "unity": "2020.3",
+  "unity": "2019.4",
   "requirements": {
     "android": {
       "minSdkVersion": 21,
@@ -21,7 +21,7 @@
     "wisetrack"
   ],
   "author": {
-    "name": "Mostafa Movahhed",
+    "name": "WiseTrack",
     "email": "thisismovahhed@gmail.com",
     "url": "https://wisetrack.io"
   },
@@ -32,7 +32,7 @@
       "path": "Samples~/"
     }
   ],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/wisetrack-io/unity-sdk"
