@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dependencies>
+  <androidPackages>
+    <androidPackage spec="io.wisetrack.sdk:core:2.0.10" />
+  </androidPackages>
+</dependencies>

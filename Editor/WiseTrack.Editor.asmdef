@@ -1,0 +1,20 @@
+{
+    "name": "WiseTrack.Editor",
+    "rootNamespace": "WiseTrack.Editor",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Google.IOSResolver.dll",
+        "Google.JarResolver.dll",
+        "Google.VersionHandler.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

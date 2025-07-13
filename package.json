@@ -1,0 +1,40 @@
+{
+  "name": "io.wisetrack.sdk.unity",
+  "version": "2.0.0",
+  "displayName": "WiseTrack Unity SDK",
+  "description": "WiseTrack analytics and attribution SDK for Unity",
+  "unity": "2020.3",
+  "requirements": {
+    "android": {
+      "minSdkVersion": 21,
+      "kotlinVersion": "1.9.0"
+    }
+  },
+  "dependencies": {
+    "com.google.external-dependency-manager": "1.2.177"
+  },
+  "keywords": [
+    "analytics",
+    "attribution",
+    "tracking",
+    "android",
+    "wisetrack"
+  ],
+  "author": {
+    "name": "Mostafa Movahhed",
+    "email": "thisismovahhed@gmail.com",
+    "url": "https://wisetrack.io"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Sample",
+      "description": "This Sample contains a Scene and a Script.",
+      "path": "Samples~/"
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wisetrack-io/unity-sdk"
+  }
+}
