@@ -55,6 +55,15 @@ To integrate the WiseTrack Unity Package into your Unity project, follow these s
    - Open Unity, and EDM4U will automatically detect and resolve dependencies. If not, manually trigger resolution via `Assets > External Dependency Manager > Android Resolver > Resolve`.
    - Ensure all required dependencies are included in your project (see [Feature-Specific Dependencies](#feature-specific-dependencies-android)).
 
+   ### Option 3: Via `.unitypackage` (Manual Import)
+
+   - Go to the [Releases](https://github.com/wisetrack-io/unity-sdk/releases) section of the repository.
+   - Download the latest `.unitypackage` file.
+   - In Unity, navigate to `Assets > Import Package > Custom Package…`.
+   - Select the downloaded `.unitypackage` and click `Import`.
+   - Once imported, make sure EDM4U is installed in your project.
+   - Trigger dependency resolution via `Assets > External Dependency Manager > Android Resolver > Resolve` if needed.
+
 3. **Configure Android**:
    Ensure your `minSdkVersion` is set to 21 or later
 
