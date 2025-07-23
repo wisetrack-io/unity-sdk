@@ -47,9 +47,7 @@ object WiseTrackUnityPlugin {
             val oaidEnabled = json.optBoolean("oaid_enabled", false)
             val referrerEnabled = json.optBoolean("referrer_enabled", true)
 
-           
            ResourceWrapper.setFramework("unity")
-           ResourceWrapper.setSdkHash("74f6c5494c51b3339b40535a48be85190bcc4472")
            ResourceWrapper.setEnvironment(sdkEnv)
            ResourceWrapper.setVersion(sdkVersion)
 

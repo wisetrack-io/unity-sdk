@@ -26,7 +26,7 @@ namespace WiseTrack.Runtime
 
         public static WTParamValue FromDynamic(object value)
         {
-            if (value is string || value is double || value is float || value is int || value is long || value is bool)
+            if (value is string || value is double || value is float || value is int || value is decimal || value is long || value is bool)
             {
                 return new WTParamValue(value);
             }

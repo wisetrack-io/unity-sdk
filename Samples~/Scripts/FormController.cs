@@ -12,9 +12,10 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     public TMP_InputField defaultTrackerInput;
     public TMP_InputField storeNameInput;
     public TMP_Dropdown logLevelField;
-    public Button ToggleEnabledBtn;
-    public Button defaultEventBtn;
-    public Button revenueEventBtn;
+    public TMP_InputField eventNameInput;
+    public TMP_InputField eventParamsInput;
+    public TMP_Dropdown eventTypeField;
+    public Button createEventBtn;
     public Button pushTokenBtn;
     public Button getInfoBtn;
     public Button clearDataBtn;
@@ -29,15 +30,15 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     void Start()
     {
         appTokenInput.text = "rMN5ZCwpOzY7";
+        eventNameInput.text = "testEvent";
         logLevelField.onValueChanged.AddListener(OnLogLevelChanged);
         startSdkBtn.onClick.AddListener(OnStartSdkClicked);
-        defaultEventBtn.onClick.AddListener(OnDefaultEventClicked);
-        revenueEventBtn.onClick.AddListener(OnRevenueEventClicked);
         pushTokenBtn.onClick.AddListener(OnPushTokenClicked);
         getInfoBtn.onClick.AddListener(OnGetInfoClicked);
         clearDataBtn.onClick.AddListener(OnClearDataClicked);
-        ToggleEnabledBtn.onClick.AddListener(OnToggleEnabledClicked);
+        createEventBtn.onClick.AddListener(OnCreateEventClicked);
 
+        WiseTrack.Core.WTResources.DefaultSdkEnv = WiseTrack.Core.WTSDKEnvironment.Debug;
         WiseTrackLogger.AddLogger(this);
     }
 
@@ -65,7 +66,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             WiseTrackBridge.Initialize(config);
             sdkInitialized = true;
             sdkRunning = true;
-            changeMainButton("Stop SDK", new Color32(243, 23, 23, 255));
+            ChangeMainButton("Stop SDK", new Color32(243, 23, 23, 255));
         }
         else
         {
@@ -73,18 +74,18 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             {
                 WiseTrackBridge.StopTracking();
                 sdkRunning = false;
-                changeMainButton("Start SDK", new Color32(0, 176, 82, 255));
+                ChangeMainButton("Start SDK", new Color32(0, 176, 82, 255));
             }
             else
             {
                 sdkRunning = true;
-                changeMainButton("Stop SDK", new Color32(243, 23, 23, 255));
+                ChangeMainButton("Stop SDK", new Color32(243, 23, 23, 255));
                 WiseTrackBridge.StartTracking();
             }
         }
     }
 
-    private void changeMainButton(string title, Color color)
+    private void ChangeMainButton(string title, Color color)
     {
         Image buttonImage = startSdkBtn.GetComponent<Image>();
         buttonImage.color = color;
@@ -113,7 +114,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         sdkRunning = false;
         WiseTrackBridge.ClearDataAndStop();
 
-        changeMainButton("Initial SDK", new Color32(51, 51, 255, 255));
+        ChangeMainButton("Initial SDK", new Color32(51, 51, 255, 255));
     }
 
     void OnGetInfoClicked()
@@ -127,33 +128,69 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         Debug.Log("SDK.Referrer= " + referrer);
     }
 
-    void OnDefaultEventClicked()
-    {
-        var Params = new Dictionary<string, WTParamValue>
-        {
-            { "param-1", WTParamValue.FromDynamic("unity") },
-            { "param-2", WTParamValue.FromDynamic(2.3) },
-            { "param-3", WTParamValue.FromDynamic(true) },
-        };
-        WTEvent Event = WTEvent.DefaultEvent("default-event", Params);
-        WiseTrackBridge.LogEvent(Event);
-    }
-
-    void OnRevenueEventClicked()
-    {
-        var Params = new Dictionary<string, WTParamValue>
-        {
-            { "param-1", WTParamValue.FromDynamic("unity") },
-            { "param-2", WTParamValue.FromDynamic(2.3) },
-            { "param-3", WTParamValue.FromDynamic(true) },
-        };
-        WTEvent Event = WTEvent.RevenueEvent("revenue-event", WTRevenueCurrency.IRR, 120000, Params);
-        WiseTrackBridge.LogEvent(Event);
-    }
-
     void OnPushTokenClicked()
     {
         WiseTrackBridge.SetFCMToken("my-unity-fcm-token");
+    }
+
+    void OnCreateEventClicked()
+    {
+        var eventName = eventNameInput.text.Trim();
+        var paramsText = eventParamsInput.text.Trim();
+
+        if (string.IsNullOrEmpty(eventName)) return;
+
+        var paramsDict = new Dictionary<string, WTParamValue>();
+        string[] parameters = paramsText.Split(',');
+        foreach (var item in parameters)
+        {
+            if (!item.Contains('=')) continue;
+            string[] parts = item.Trim().Split('=');
+            string key = parts[0];
+            string valueString = parts[1];
+
+            if (int.TryParse(valueString, out int resInt))
+            {
+                paramsDict.Add(key, WTParamValue.FromDynamic(resInt));
+                continue;
+            }
+            if (decimal.TryParse(valueString, out decimal resDecimal))
+            {
+                paramsDict.Add(key, WTParamValue.FromDynamic(resDecimal));
+                continue;
+            }
+            if (float.TryParse(valueString, out float resFloat))
+            {
+                paramsDict.Add(key, WTParamValue.FromDynamic(resFloat));
+                continue;
+            }
+            if (double.TryParse(valueString, out double resDouble))
+            {
+                paramsDict.Add(key, WTParamValue.FromDynamic(resDouble));
+                continue;
+            }
+            if (bool.TryParse(valueString, out bool resBool))
+            {
+                paramsDict.Add(key, WTParamValue.FromDynamic(resBool));
+                continue;
+            }
+            paramsDict.Add(key, WTParamValue.FromDynamic(valueString));
+        }
+
+        WTEvent Event;
+        var eType = eventTypeField.options[eventTypeField.value].text;
+        switch (eType)
+        {
+            case "Default":
+                Event = WTEvent.DefaultEvent(eventName, paramsDict);
+                break;
+            case "Revenue":
+                Event = WTEvent.RevenueEvent(eventName, WTRevenueCurrency.IRR, 120000, paramsDict);
+                break;
+            default:
+                return;
+        }
+        WiseTrackBridge.LogEvent(Event);
     }
 
     public void AddLog(string logText, Color? textColor = null)
