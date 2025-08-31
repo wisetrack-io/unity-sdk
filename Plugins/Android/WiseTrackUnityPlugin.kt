@@ -23,8 +23,6 @@ object WiseTrackUnityPlugin {
 
     private fun getActivity(): Activity = UnityPlayer.currentActivity
 
-    private fun getWiseTrack(): WiseTrack = WiseTrack.getInstance(getActivity())
-
     @JvmStatic
     fun initialize(jsonConfig: String) {
         try {
@@ -37,38 +35,39 @@ object WiseTrackUnityPlugin {
             val storeName = json.optString("android_store_name", "other")
             val trackingWaitingTime = json.optInt("tracking_waiting_time", 0)
             val startTrackerAutomatically = json.optBoolean("start_tracker_automatically", true)
-            val customDeviceId = if(json.has("custom_device_id")) json.getString("custom_device_id") else null
-            val defaultTracker = if(json.has("default_tracker")) json.getString("default_tracker") else null
-            val appSecret = if(json.has("app_secret")) json.getString("app_secret") else null
-            val secretId = if(json.has("secret_id")) json.getString("secret_id") else null
+            val customDeviceId = if (json.has("custom_device_id")) json.getString("custom_device_id") else null
+            val defaultTracker = if (json.has("default_tracker")) json.getString("default_tracker") else null
+            val appSecret = if (json.has("app_secret")) json.getString("app_secret") else null
+            val secretId = if (json.has("secret_id")) json.getString("secret_id") else null
             val attributionDeeplink = json.optBoolean("attribution_deeplink", false)
             val eventBuffering = json.optBoolean("event_buffering_enabled", false)
             val logLevel = json.optInt("log_level", 3)
             val oaidEnabled = json.optBoolean("oaid_enabled", false)
             val referrerEnabled = json.optBoolean("referrer_enabled", true)
 
-           ResourceWrapper.setFramework("unity")
-           ResourceWrapper.setEnvironment(sdkEnv)
-           ResourceWrapper.setVersion(sdkVersion)
+            val resourceWrapper = ResourceWrapper(getActivity())
+            resourceWrapper.setFramework("unity")
+            resourceWrapper.setEnvironment(sdkEnv)
+            resourceWrapper.setVersion(sdkVersion)
 
-           val config = WTInitialConfig(
-               appToken = appToken,
-               environment = WTUserEnvironment.valueOf(userEnv.uppercase()),
-               storeName = WTStoreName.fromString(storeName),
-               trackingWaitingTime = trackingWaitingTime,
-               startTrackerAutomatically = startTrackerAutomatically,
-               customDeviceId = customDeviceId,
-               defaultTracker = defaultTracker,
-               appSecret = appSecret,
-               secretId = secretId,
-               attributionDeeplink = attributionDeeplink,
-               eventBuffering = eventBuffering,
-               logLevel = WTLogLevel.fromPriority(logLevel),
-               oaidEnabled = oaidEnabled,
-               referrerEnabled = referrerEnabled
-           )
+            val config = WTInitialConfig(
+                appToken = appToken,
+                environment = WTUserEnvironment.valueOf(userEnv.uppercase()),
+                storeName = WTStoreName.fromString(storeName),
+                trackingWaitingTime = trackingWaitingTime,
+                startTrackerAutomatically = startTrackerAutomatically,
+                customDeviceId = customDeviceId,
+                defaultTracker = defaultTracker,
+                appSecret = appSecret,
+                secretId = secretId,
+                attributionDeeplink = attributionDeeplink,
+                eventBuffering = eventBuffering,
+                logLevel = WTLogLevel.fromPriority(logLevel),
+                oaidEnabled = oaidEnabled,
+                referrerEnabled = referrerEnabled
+            )
 
-           getWiseTrack().initialize(config)
+            WiseTrack.initialize(getActivity(), config)
 
         } catch (e: Exception) {
             Log.e("WiseTrackUnityPlugin", "Failed to parse config: $jsonConfig", e)
@@ -77,43 +76,48 @@ object WiseTrackUnityPlugin {
 
     @JvmStatic
     fun addLoggerOutput() {
-        getWiseTrack().addLoggerOutput(UnityLoggerOutput)
+        WiseTrack.addLoggerOutput(UnityLoggerOutput)
+    }
+
+    @JvmStatic
+    fun ensureInitialized() {
+        WiseTrack.ensureInitialized(getActivity())
     }
 
     @JvmStatic
     fun setLogLevel(level: Int) {
-        getWiseTrack().setLogLevel(WTLogLevel.fromPriority(level))
+        WiseTrack.setLogLevel(WTLogLevel.fromPriority(level))
     }
 
     @JvmStatic
     fun clearDataAndStop() {
-        getWiseTrack().clearDataAndStop()
+        WiseTrack.clearDataAndStop()
     }
 
     @JvmStatic
     fun setEnabled(enabled: Boolean) {
-        getWiseTrack().setEnabled(enabled)
+        WiseTrack.setEnabled(enabled)
     }
 
     @JvmStatic
     fun isEnabled(): Boolean {
-        return getWiseTrack().isEnabled
+        return WiseTrack.isEnabled
     }
 
     @JvmStatic
     fun startTracking() {
-        getWiseTrack().startTracking()
+        WiseTrack.startTracking()
     }
 
     @JvmStatic
     fun stopTracking() {
-        getWiseTrack().stopTracking()
+        WiseTrack.stopTracking()
     }
 
     @JvmStatic
     fun setFCMToken(token: String?) {
         if (!token.isNullOrEmpty()) {
-            getWiseTrack().setFCMToken(token)
+            WiseTrack.setFCMToken(token)
         }
     }
 
@@ -129,7 +133,7 @@ object WiseTrackUnityPlugin {
         val paramsMap = mutableMapOf<String, EventParam>()
 
         if (paramsJson != null) {
-            for (key in paramsJson.keys()){
+            for (key in paramsJson.keys()) {
                 paramsMap[key] = when (val value = paramsJson.get(key)) {
                     is Int -> EventParam(value.toDouble())
                     is Double -> EventParam(value)
@@ -150,15 +154,15 @@ object WiseTrackUnityPlugin {
             WTEvent.defaultEvent(name, params = paramsMap)
         }
 
-        getWiseTrack().logEvent(event)
+        WiseTrack.logEvent(event)
     }
 
 
     @JvmStatic
-    fun getAdId(): String? = getWiseTrack().getADID()
+    fun getAdId(): String? = WiseTrack.getADID()
 
     @JvmStatic
-    fun getReferrer(): String? = getWiseTrack().getReferrer()
+    fun getReferrer(): String? = WiseTrack.getReferrer()
 }
 
 internal object UnityLoggerOutput : WTLoggerOutput {

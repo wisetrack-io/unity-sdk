@@ -10,6 +10,7 @@ namespace WiseTrack.Platform
         private static AndroidJavaClass pluginClass = new AndroidJavaClass("io.wisetrack.sdk.unity.WiseTrackUnityPlugin");
 
         public AndroidPlatform(){
+            EnsureInitialized();
             AddLoggerOutput();
         }
 
@@ -17,6 +18,11 @@ namespace WiseTrack.Platform
         {
             string json = JsonParser.Serialize(wtConfig.ToMap());
             pluginClass.CallStatic("initialize", json);
+        }
+
+        public void EnsureInitialized()
+        {
+            pluginClass.CallStatic("ensureInitialized");
         }
 
         public void AddLoggerOutput()

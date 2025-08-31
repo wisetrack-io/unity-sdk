@@ -29,7 +29,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
 
     void Start()
     {
-        appTokenInput.text = "rMN5ZCwpOzY7";
+        appTokenInput.text = "<AppToken>";
         eventNameInput.text = "testEvent";
         logLevelField.onValueChanged.AddListener(OnLogLevelChanged);
         startSdkBtn.onClick.AddListener(OnStartSdkClicked);
@@ -38,7 +38,6 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         clearDataBtn.onClick.AddListener(OnClearDataClicked);
         createEventBtn.onClick.AddListener(OnCreateEventClicked);
 
-        WiseTrack.Core.WTResources.DefaultSdkEnv = WiseTrack.Core.WTSDKEnvironment.Debug;
         WiseTrackLogger.AddLogger(this);
     }
 
