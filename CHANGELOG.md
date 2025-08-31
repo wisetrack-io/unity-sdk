@@ -4,7 +4,7 @@
 
 ### Enhanced
 
-- Updated WiseTrack SDK to version 2.2.2
+- Updated Android Native SDK to `2.2.2`
 - Enhanced event parameter handling and validations
 - Updated Android plugin integration
 
