@@ -75,6 +75,16 @@ object WiseTrackUnityPlugin {
     }
 
     @JvmStatic
+    fun isWiseTrackNotificationPayload(jsonData: String): Boolean {
+        try {
+            val jsonObject = JSONObject(jsonData)
+            return WiseTrack.isWiseTrackNotificationPayload(jsonObject.toMap())
+        } catch (e: Exception) {
+            return false
+        }
+    }
+
+    @JvmStatic
     fun addLoggerOutput() {
         WiseTrack.addLoggerOutput(UnityLoggerOutput)
     }
@@ -163,6 +173,17 @@ object WiseTrackUnityPlugin {
 
     @JvmStatic
     fun getReferrer(): String? = WiseTrack.getReferrer()
+}
+
+private fun JSONObject.toMap(): Map<String, String> {
+    val map = mutableMapOf<String, String>()
+    val keys = this.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        val value = this.get(key)
+        map[key] = value.toString()
+    }
+    return map
 }
 
 internal object UnityLoggerOutput : WTLoggerOutput {

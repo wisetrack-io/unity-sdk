@@ -10,7 +10,7 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
 - [Basic Usage](#basic-usage)
   - [Enabling/Disabling Tracking](#enablingdisabling-tracking)
   - [Starting/Stopping Tracking](#startingstopping-tracking)
-  - [Setting Push Notification Tokens](#setting-push-notification-tokens)
+  - [Uninstall Detection and Setting Push Notification Tokens](#uninstall-detection-and-setting-push-notification-tokens)
   - [Logging Custom Events](#logging-custom-events)
   - [Setting Log Levels](#setting-log-levels)
   - [Retrieving Advertising IDs](#retrieving-advertising-ids)
@@ -204,13 +204,53 @@ WiseTrackBridge.StartTracking();
 WiseTrackBridge.StopTracking();
 ```
 
-### Setting Push Notification Tokens
 
-Save FCM tokens:
+### Uninstall Detection and Setting Push Notification Tokens
+
+To enable WiseTrack Uninstall Detection feature, you need to configure your project to receive push notifications using **Firebase Cloud Messaging (FCM)**.
+
+#### 1. Configure Firebase Cloud Messaging (FCM)
+
+Follow the official Firebase documentation to set up FCM in your project:
+👉 [Firebase Cloud Messaging Setup Guide](https://firebase.google.com/docs/unity/setup)
+
+#### 2. Handle Notification Tokens
+
+Once FCM is configured, you need to get Fcm token and pass them to WiseTrack:
 
 ```csharp
-// Set FCM token
-WiseTrackBridge.SetFCMToken("your-fcm-token");
+    FirebaseMessaging.GetTokenAsync().ContinueWithOnMainThread(task => {
+      if (task.IsCompleted && !task.IsFaulted)
+      {
+          string token = task.Result;
+          WiseTrackBridge.SetFCMToken(token);
+      }
+    });
+
+    // Or Monitor notification token refresh:
+    FirebaseMessaging.TokenReceived += OnTokenReceived;
+    void OnTokenReceived(object sender, TokenReceivedEventArgs token)
+    {
+        WiseTrackBridge.SetFCMToken(token.Token);
+    }
+```
+
+#### 3. Handle Incoming Notifications
+
+And finally inside your `FirebaseMessaging.MessageReceived` handlers, call the following helper method to check if the message belongs to WiseTrack:
+
+```csharp
+    FirebaseMessaging.MessageReceived += OnMessageReceived;
+    void OnMessageReceived(object sender, MessageReceivedEventArgs e)
+    {
+        if (WiseTrackBridge.IsWiseTrackNotificationPayload(e.Message.Data))
+        {
+            // This notification is handled internally by WiseTrack.
+            return;
+        }
+        // Otherwise, handle your app's custom notifications here.
+    }
+  
 ```
 
 ### Logging Custom Events
@@ -232,6 +272,7 @@ WiseTrackBridge.LogEvent(Event);
 WTEvent Event = WTEvent.RevenueEvent("revenue-event", WTRevenueCurrency.IRR, 120000, Params);
 WiseTrackBridge.LogEvent(Event);
 ```
+**Note:** Event parameter keys and values have a maximum limit of 50 characters.
 
 ### Setting Log Levels
 

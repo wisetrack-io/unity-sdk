@@ -16,5 +16,6 @@ namespace WiseTrack.Platform
         void LogEvent(WTEvent wtEvent);
         string GetAdId();
         string GetReferrer();
+        bool IsWiseTrackNotificationPayload(string payload);
     }
 }

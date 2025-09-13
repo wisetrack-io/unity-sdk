@@ -67,5 +67,11 @@ namespace WiseTrack.Platform
             Debug.Log("WiseTrack.GetReferrer() called in Editor/iOS - returning empty string");
             return "";
         }
+
+        public bool IsWiseTrackNotificationPayload(string payload)
+        {
+            Debug.Log($"WiseTrack.IsWiseTrackNotificationPayload({payload}) called in Editor/iOS - returning false");
+            return false;
+        }
     }
 }

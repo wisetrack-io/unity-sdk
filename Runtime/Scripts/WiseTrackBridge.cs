@@ -1,5 +1,6 @@
 using WiseTrack.Platform;
 using WiseTrack.Core;
+using System.Collections.Generic;
 
 namespace WiseTrack.Runtime
 {
@@ -38,6 +39,23 @@ namespace WiseTrack.Runtime
         public static void SetLogLevel(WTLogLevel level)
         {
             platform.SetLogLevel(level);
+        }
+
+        /// <summary>
+        /// Check if the notification payload is a WiseTrack notification
+        /// </summary>
+        /// <param name="data">Message.Data from Firebase notification</param>
+        /// <returns>True if it's a WiseTrack notification, false otherwise</returns>
+        public static bool IsWiseTrackNotificationPayload(IDictionary<string, string> data)
+        {
+            if (data == null || data.Count == 0) return false;
+            var jsonParts = new List<string>();
+            foreach (var kvp in data)
+            {
+                jsonParts.Add($"\"{kvp.Key}\":\"{kvp.Value}\"");
+            }
+            string json = "{" + string.Join(",", jsonParts) + "}";
+            return platform.IsWiseTrackNotificationPayload(json);
         }
 
         /// <summary>

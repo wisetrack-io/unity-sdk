@@ -80,6 +80,11 @@ namespace WiseTrack.Platform
         {
             return pluginClass.CallStatic<string>("getReferrer");
         }
+
+        public bool IsWiseTrackNotificationPayload(string payload)
+        {
+            return pluginClass.CallStatic<bool>("isWiseTrackNotificationPayload", payload);
+        }
     }
 #endif
 }

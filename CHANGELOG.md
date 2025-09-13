@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.4]
+
+### Enhanced
+
+- Updated Android Native SDK to `2.2.4`
+- Added support for uninstall detection using **Firebase Cloud Messaging (FCM)**.
+- Added validation for event parameters to ensure data integrity
+
 ## [2.0.3]
 
 ### Enhanced
