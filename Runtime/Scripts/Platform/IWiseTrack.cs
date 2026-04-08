@@ -17,5 +17,7 @@ namespace WiseTrack.Platform
         string GetAdId();
         string GetReferrer();
         bool IsWiseTrackNotificationPayload(string payload);
+        string GetLastDeeplink();
+        string GetDeferredDeeplink();
     }
 }

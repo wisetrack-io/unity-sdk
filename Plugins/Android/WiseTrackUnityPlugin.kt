@@ -1,6 +1,7 @@
 package io.wisetrack.sdk.unity
 
 import android.app.Activity
+import android.content.Intent
 import android.util.Log
 import org.json.JSONObject
 import com.unity3d.player.UnityPlayer
@@ -10,11 +11,11 @@ import io.wisetrack.sdk.core.models.RevenueCurrency
 import io.wisetrack.sdk.core.models.WTEvent
 import io.wisetrack.sdk.core.models.WTEventType
 import io.wisetrack.sdk.core.models.WTStoreName
-import io.wisetrack.sdk.core.core.WTUserEnvironment
+import io.wisetrack.sdk.core.models.WTUserEnvironment
 import io.wisetrack.sdk.core.models.WTInitialConfig
 import io.wisetrack.sdk.core.utils.wrapper.ResourceWrapper
 import io.wisetrack.sdk.core.models.WTLogLevel
-import io.wisetrack.sdk.core.utils.WTLoggerOutput
+import io.wisetrack.sdk.core.resources.WTLoggerOutput
 
 
 object WiseTrackUnityPlugin {
@@ -29,6 +30,7 @@ object WiseTrackUnityPlugin {
             val json = JSONObject(jsonConfig)
 
             val appToken = json.getString("app_token")
+            val clientSecret = json.getString("client_secret")
             val sdkVersion = json.getString("sdk_version")
             val sdkEnv = json.getString("sdk_environment")
             val userEnv = json.getString("user_environment")
@@ -37,13 +39,9 @@ object WiseTrackUnityPlugin {
             val startTrackerAutomatically = json.optBoolean("start_tracker_automatically", true)
             val customDeviceId = if (json.has("custom_device_id")) json.getString("custom_device_id") else null
             val defaultTracker = if (json.has("default_tracker")) json.getString("default_tracker") else null
-            val appSecret = if (json.has("app_secret")) json.getString("app_secret") else null
-            val secretId = if (json.has("secret_id")) json.getString("secret_id") else null
-            val attributionDeeplink = json.optBoolean("attribution_deeplink", false)
-            val eventBuffering = json.optBoolean("event_buffering_enabled", false)
+            val deeplinkEnabled = json.optBoolean("deeplink_enabled", true)
             val logLevel = json.optInt("log_level", 3)
             val oaidEnabled = json.optBoolean("oaid_enabled", false)
-            val referrerEnabled = json.optBoolean("referrer_enabled", true)
 
             val resourceWrapper = ResourceWrapper(getActivity())
             resourceWrapper.setFramework("unity")
@@ -52,22 +50,23 @@ object WiseTrackUnityPlugin {
 
             val config = WTInitialConfig(
                 appToken = appToken,
+                clientSecret = clientSecret,
                 environment = WTUserEnvironment.valueOf(userEnv.uppercase()),
                 storeName = WTStoreName.fromString(storeName),
                 trackingWaitingTime = trackingWaitingTime,
                 startTrackerAutomatically = startTrackerAutomatically,
                 customDeviceId = customDeviceId,
                 defaultTracker = defaultTracker,
-                appSecret = appSecret,
-                secretId = secretId,
-                attributionDeeplink = attributionDeeplink,
-                eventBuffering = eventBuffering,
+                deeplinkEnabled = deeplinkEnabled,
                 logLevel = WTLogLevel.fromPriority(logLevel),
                 oaidEnabled = oaidEnabled,
-                referrerEnabled = referrerEnabled
             )
 
             WiseTrack.initialize(getActivity(), config)
+
+            WiseTrack.setOnDeeplinkListener { intent, isDeferred ->
+                UnityDeepLinkReceiver.onDeeplinkReceived(intent, isDeferred)
+            }
 
         } catch (e: Exception) {
             Log.e("WiseTrackUnityPlugin", "Failed to parse config: $jsonConfig", e)
@@ -167,12 +166,17 @@ object WiseTrackUnityPlugin {
         WiseTrack.logEvent(event)
     }
 
-
     @JvmStatic
     fun getAdId(): String? = WiseTrack.getADID()
 
     @JvmStatic
     fun getReferrer(): String? = WiseTrack.getReferrer()
+
+    @JvmStatic
+    fun getLastDeeplink(): String? = WiseTrack.getLastDeeplink()
+
+    @JvmStatic
+    fun getDeferredDeeplink(): String? = WiseTrack.getDeferredDeeplink()
 }
 
 private fun JSONObject.toMap(): Map<String, String> {
@@ -201,6 +205,28 @@ internal object UnityLoggerOutput : WTLoggerOutput {
             )
         } catch (e: Exception) {
             Log.e("WiseTrackUnity", "Failed to send log to Unity: ${e.message}")
+        }
+    }
+}
+
+internal object UnityDeepLinkReceiver {
+    private const val UNITY_GAME_OBJECT = "WiseTrackManager"
+    private const val UNITY_CALLBACK_METHOD = "OnDeepLinkReceived"
+
+    fun onDeeplinkReceived(intent: Intent, isDeferred: Boolean) {
+        try {
+            val url = intent.dataString ?: return
+            // Format: "url|isDeferred" - Unity will parse this
+            val message = "$url|$isDeferred"
+
+            // Send to Unity main thread
+            UnityPlayer.UnitySendMessage(
+                UNITY_GAME_OBJECT,
+                UNITY_CALLBACK_METHOD,
+                message
+            )
+        } catch (e: Exception) {
+            Log.e("WiseTrackUnity", "Failed to send deeplink to Unity: ${e.message}")
         }
     }
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0]
+
+### Added
+
+- Added `ClientSecret` field to `WTInitialConfig` for enhanced security and authentication
+- Added Deep Linking support with the following features:
+  - `DeeplinkEnabled` configuration option to enable/disable deep linking
+  - `GetLastDeeplink()` method to retrieve the last received direct deep link
+  - `GetDeferredDeeplink()` method to retrieve deferred deep links (for new installs)
+  - `SetDeeplinkListener()` method to register a callback for deep link events
+  - `OnDeepLinkReceived` event for subscribing to deep link notifications
+  - `DeepLinkData` class containing `Url` and `IsDeferred` properties
+
 ## [2.0.4]
 
 ### Enhanced

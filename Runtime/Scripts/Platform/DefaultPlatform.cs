@@ -73,5 +73,17 @@ namespace WiseTrack.Platform
             Debug.Log($"WiseTrack.IsWiseTrackNotificationPayload({payload}) called in Editor/iOS - returning false");
             return false;
         }
+
+        public string GetLastDeeplink()
+        {
+            Debug.Log("WiseTrack.GetLastDeeplink() called in Editor/iOS - returning empty string");
+            return "";
+        }
+
+        public string GetDeferredDeeplink()
+        {
+            Debug.Log("WiseTrack.GetDeferredDeeplink() called in Editor/iOS - returning empty string");
+            return "";
+        }
     }
 }

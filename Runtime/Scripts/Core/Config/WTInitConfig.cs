@@ -8,6 +8,7 @@ namespace WiseTrack.Runtime
     public class WTInitialConfig
     {
         public string AppToken;
+        public string ClientSecret;
         public WTUserEnvironment UserEnvironment = WTUserEnvironment.Sandbox;
         public WTAndroidStore AndroidStore = WTAndroidStore.Other;
         public WTIOSStore IOSStore = WTIOSStore.Other;
@@ -15,19 +16,16 @@ namespace WiseTrack.Runtime
         public bool StartTrackerAutomatically = true;
         public string CustomDeviceId = null;
         public string DefaultTracker = null;
-        public string AppSecret = null;
-        public string SecretId = null;
-        public bool AttributionDeeplink = false;
-        public bool EventBuffering = false;
+        public bool DeeplinkEnabled = true;
         public WTLogLevel LogLevel = WTResources.DefaultLogLevel;
         public bool OaidEnabled = false;
-        public bool ReferrerEnabled = true;
 
         public Dictionary<string, object> ToMap()
         {
             var map = new Dictionary<string, object>
         {
             { "app_token", AppToken },
+            { "client_secret", ClientSecret },
             { "sdk_version", WTResources.SdkVersion },
             { "sdk_environment", WTResources.DefaultSdkEnv.ToString().ToLower() },
             { "user_environment", UserEnvironment.ToString().ToLower() },
@@ -37,13 +35,9 @@ namespace WiseTrack.Runtime
             { "start_tracker_automatically", StartTrackerAutomatically },
             { "custom_device_id", CustomDeviceId },
             { "default_tracker", DefaultTracker },
-            { "app_secret", AppSecret },
-            { "secret_id", SecretId },
-            { "attribution_deeplink", AttributionDeeplink },
-            { "event_buffering_enabled", EventBuffering },
+            { "deeplink_enabled", DeeplinkEnabled },
             { "log_level", (int)LogLevel },
             { "oaid_enabled", OaidEnabled },
-            { "referrer_enabled", ReferrerEnabled }
         };
 
             return map;

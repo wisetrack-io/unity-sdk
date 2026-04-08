@@ -1,3 +1,4 @@
+using System;
 using WiseTrack.Platform;
 using WiseTrack.Core;
 using System.Collections.Generic;
@@ -11,9 +12,18 @@ namespace WiseTrack.Runtime
     {
         private static IWiseTrack platform;
 
+        /// <summary>
+        /// Event fired when a deep link is received.
+        /// Subscribe to this event to handle deep links in your application.
+        /// </summary>
+        public static event Action<DeepLinkData> OnDeepLinkReceived
+        {
+            add => WiseTrackManager.OnDeepLink += value;
+            remove => WiseTrackManager.OnDeepLink -= value;
+        }
+
         static WiseTrackBridge()
         {
-
             var manager = WiseTrackManager.Instance;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -134,6 +144,39 @@ namespace WiseTrack.Runtime
         public static string GetReferrer()
         {
             return platform.GetReferrer();
+        }
+
+        /// <summary>
+        /// Get the last received deep link URL.
+        /// This can be used to retrieve the most recent direct deep link.
+        /// </summary>
+        /// <returns>The last deep link URL or empty string if none available</returns>
+        public static string GetLastDeeplink()
+        {
+            return platform.GetLastDeeplink();
+        }
+
+        /// <summary>
+        /// Get the deferred deep link URL.
+        /// Deferred deep links are received when the app is installed after clicking a link.
+        /// </summary>
+        /// <returns>The deferred deep link URL or empty string if none available</returns>
+        public static string GetDeferredDeeplink()
+        {
+            return platform.GetDeferredDeeplink();
+        }
+
+        /// <summary>
+        /// Set a callback to be notified when deep links are received.
+        /// This is a convenience method - you can also subscribe to OnDeepLinkReceived event directly.
+        /// </summary>
+        /// <param name="callback">Callback action that receives DeepLinkData</param>
+        public static void SetDeeplinkListener(Action<DeepLinkData> callback)
+        {
+            if (callback != null)
+            {
+                OnDeepLinkReceived += callback;
+            }
         }
     }
 }

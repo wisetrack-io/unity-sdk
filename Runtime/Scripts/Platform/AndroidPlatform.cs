@@ -85,6 +85,16 @@ namespace WiseTrack.Platform
         {
             return pluginClass.CallStatic<bool>("isWiseTrackNotificationPayload", payload);
         }
+
+        public string GetLastDeeplink()
+        {
+            return pluginClass.CallStatic<string>("getLastDeeplink");
+        }
+
+        public string GetDeferredDeeplink()
+        {
+            return pluginClass.CallStatic<string>("getDeferredDeeplink");
+        }
     }
 #endif
 }

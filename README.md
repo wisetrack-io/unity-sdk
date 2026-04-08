@@ -14,6 +14,10 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
   - [Logging Custom Events](#logging-custom-events)
   - [Setting Log Levels](#setting-log-levels)
   - [Retrieving Advertising IDs](#retrieving-advertising-ids)
+- [Deep Linking](#deep-linking)
+  - [Enable Deep Linking](#enable-deep-linking)
+  - [Listening for Deep Links](#listening-for-deep-links)
+  - [Retrieving Deep Links](#retrieving-deep-links)
 - [Advanced Usage](#advanced-usage)
   - [Customizing SDK Behavior](#customizing-sdk-behavior)
 - [Example Project](#example-project)
@@ -159,6 +163,7 @@ public class GameInitializer : MonoBehaviour
         var config = new WTInitialConfig
         {
             AppToken = "your-app-token",
+            ClientSecret = "your-client-secret",
             UserEnvironment = WTUserEnvironment.Production, // Use Sandbox for testing
             AndroidStore = WTAndroidStore.GooglePlay,
             iOSStore = WTIOSStore.AppStore,
@@ -170,7 +175,7 @@ public class GameInitializer : MonoBehaviour
 }
 ```
 
-**Note**: Replace `"your-app-token"` with the token provided by the WiseTrack dashboard.
+**Note**: Replace `"your-app-token"` and `"your-client-secret"` with the credentials provided by the WiseTrack dashboard.
 
 ## Basic Usage
 
@@ -292,6 +297,102 @@ string adId = WiseTrackBridge.GetAdId();
 Debug.Log($"Ad ID: {(string.IsNullOrEmpty(adId) ? "Not available" : adId)}");
 ```
 
+## Deep Linking
+
+WiseTrack SDK supports both **direct deep linking** (when the app is already installed) and **deferred deep linking** (when the app is installed after clicking a link).
+
+### Enable Deep Linking
+
+To enable deep linking, set `DeeplinkEnabled` to `true` in your configuration:
+
+```csharp
+var config = new WTInitialConfig
+{
+    AppToken = "your-app-token",
+    ClientSecret = "your-client-secret",
+    UserEnvironment = WTUserEnvironment.Production,
+    DeeplinkEnabled = true  // Enable deep linking
+};
+
+WiseTrackBridge.Initialize(config);
+```
+
+### Listening for Deep Links
+
+You can register a callback to be notified when deep links are received:
+
+```csharp
+using UnityEngine;
+using WiseTrack.Runtime;
+using WiseTrack.Core;
+
+public class DeepLinkHandler : MonoBehaviour
+{
+    void Start()
+    {
+        // Option 1: Subscribe to the event
+        WiseTrackBridge.OnDeepLinkReceived += OnDeepLink;
+
+        // Option 2: Use SetDeeplinkListener method
+        WiseTrackBridge.SetDeeplinkListener(data => {
+            Debug.Log($"Deep link received: {data.Url}");
+        });
+    }
+
+    void OnDeepLink(DeepLinkData data)
+    {
+        Debug.Log($"URL: {data.Url}");
+        Debug.Log($"Is Deferred: {data.IsDeferred}");
+
+        if (data.IsDeferred)
+        {
+            // This is a deferred deep link (user installed app after clicking link)
+            Debug.Log("User came from a deferred deep link");
+        }
+        else
+        {
+            // This is a direct deep link (app was already installed)
+            Debug.Log("User came from a direct deep link");
+        }
+
+        // Handle navigation based on the URL
+        HandleDeepLinkNavigation(data.Url);
+    }
+
+    void HandleDeepLinkNavigation(string url)
+    {
+        // Your navigation logic here
+        // Example: Parse URL and navigate to specific screen
+    }
+
+    void OnDestroy()
+    {
+        // Always unsubscribe when the object is destroyed
+        WiseTrackBridge.OnDeepLinkReceived -= OnDeepLink;
+    }
+}
+```
+
+### Retrieving Deep Links
+
+You can also retrieve deep links programmatically:
+
+```csharp
+// Get the last received direct deep link
+string lastDeepLink = WiseTrackBridge.GetLastDeeplink();
+if (!string.IsNullOrEmpty(lastDeepLink))
+{
+    Debug.Log($"Last Deep Link: {lastDeepLink}");
+}
+
+// Get the deferred deep link (from new install)
+string deferredDeepLink = WiseTrackBridge.GetDeferredDeeplink();
+if (!string.IsNullOrEmpty(deferredDeepLink))
+{
+    Debug.Log($"Deferred Deep Link: {deferredDeepLink}");
+}
+```
+
 ## Advanced Usage
 
 ### Customizing SDK Behavior
@@ -299,15 +400,16 @@ Debug.Log($"Ad ID: {(string.IsNullOrEmpty(adId) ? "Not available" : adId)}");
 Customize the SDK behavior through the `WTInitialConfig` parameters:
 
 - `AppToken`: Your unique app token (required).
+- `ClientSecret`: Your client secret key (required).
 - `UserEnvironment`: The environment (`Production`, `Sandbox`).
 - `AndroidStore`: The Android app store (e.g., `PlayStore`, `CafeBazaar`, `Myket`, `Other`).
 - `TrackingWaitingTime`: Delay before starting tracking (in seconds).
 - `StartTrackerAutomatically`: Whether to start tracking automatically.
 - `CustomDeviceId`: A custom device identifier.
 - `DefaultTracker`: A default tracker for event attribution.
+- `DeeplinkEnabled`: Enable or disable deep linking support (default: `true`).
 - `LogLevel`: Set the initial log level.
 - `OaidEnabled`: Indicates whether the Open Advertising ID (OAID) is enabled.
-- `ReferrerEnabled`: Indicates whether the Referrer ID is enabled.
 
 Example with advanced configuration:
 
@@ -315,18 +417,19 @@ Example with advanced configuration:
 var config = new WTInitialConfig
 {
     AppToken = "your-app-token",
+    ClientSecret = "your-client-secret",
     UserEnvironment = WTUserEnvironment.Sandbox,
     AndroidStore = WTAndroidStore.PlayStore,
     TrackingWaitingTime = 3,
     StartTrackerAutomatically = true,
     CustomDeviceId = "custom-device-123",
     DefaultTracker = "default-tracker",
+    DeeplinkEnabled = true,
     LogLevel = WTLogLevel.Debug,
-    OaidEnabled = false,
-    ReferrerEnabled = true
+    OaidEnabled = false
 };
 
-WiseTrackBridge.Init(config);
+WiseTrackBridge.Initialize(config);
 ```
 
 ## Example Project

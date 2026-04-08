@@ -4,11 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using WiseTrack.Runtime;
+using WiseTrack.Core;
+using Firebase.Extensions;
+using Firebase.Messaging;
 
 public class FormController : MonoBehaviour, IWiseTrackLogger
 {
     [Header("UI Elements")]
     public TMP_InputField appTokenInput;
+    public TMP_InputField clientSecretInput;
     public TMP_InputField defaultTrackerInput;
     public TMP_InputField storeNameInput;
     public TMP_Dropdown logLevelField;
@@ -20,16 +24,20 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     public Button getInfoBtn;
     public Button clearDataBtn;
     public Button startSdkBtn;
+    public Button testNotificationBtn;
     public ScrollRect scrollRect;
 
 
     private bool sdkEnabled = true;
     private bool sdkInitialized = false;
     private bool sdkRunning = false;
+    private Firebase.FirebaseApp app;
+    private bool firebaseInitialized = false;
 
     void Start()
     {
         appTokenInput.text = "<AppToken>";
+        clientSecretInput.text = "<ClientSecret>";
         eventNameInput.text = "testEvent";
         logLevelField.onValueChanged.AddListener(OnLogLevelChanged);
         startSdkBtn.onClick.AddListener(OnStartSdkClicked);
@@ -39,6 +47,110 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         createEventBtn.onClick.AddListener(OnCreateEventClicked);
 
         WiseTrackLogger.AddLogger(this);
+
+        // Subscribe to deep link events
+        WiseTrackBridge.OnDeepLinkReceived += OnDeepLinkReceived;
+
+        // Initialize Firebase
+        SetupFirebase();
+    }
+
+    void OnDeepLinkReceived(DeepLinkData data)
+    {
+        string linkType = data.IsDeferred ? "Deferred" : "Direct";
+        AddInfoLog($"🔗 [{linkType}] Deep Link: {data.Url}");
+
+        // You can also handle navigation here based on the URL
+        // Example: ParseDeepLinkAndNavigate(data.Url);
+    }
+
+    void SetupFirebase()
+    {
+        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        {
+            var dependencyStatus = task.Result;
+            if (dependencyStatus == Firebase.DependencyStatus.Available)
+            {
+                // Create and hold a reference to your FirebaseApp
+                app = Firebase.FirebaseApp.DefaultInstance;
+                firebaseInitialized = true;
+
+                // Initialize Firebase Messaging
+                InitializeFirebaseMessaging();
+
+                AddInfoLog("Firebase initialized successfully!");
+            }
+            else
+            {
+                UnityEngine.Debug.LogError(System.String.Format(
+                "Could not resolve all Firebase dependencies: {0}", dependencyStatus));
+                AddErrorLog($"Firebase dependency error: {dependencyStatus}");
+            }
+        });
+    }
+
+    void InitializeFirebaseMessaging()
+    {
+        if (!firebaseInitialized) return;
+
+        // Subscribe to token refresh events
+        FirebaseMessaging.TokenReceived += OnTokenReceived;
+        FirebaseMessaging.MessageReceived += OnMessageReceived;
+
+        // Request permission for notifications (iOS)
+        // #if UNITY_IOS
+        FirebaseMessaging.RequestPermissionAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                AddInfoLog("Firebase Messaging permission granted");
+            }
+            else
+            {
+                AddErrorLog("Firebase Messaging permission denied");
+            }
+        });
+        // #endif
+
+        // Get the current token
+        GetFcmToken();
+    }
+
+    void OnTokenReceived(object sender, TokenReceivedEventArgs token)
+    {
+        AddInfoLog($"FCM Token refreshed: {token.Token}");
+
+        // Update the token in WiseTrack
+        WiseTrackBridge.SetFCMToken(token.Token);
+    }
+
+    void OnMessageReceived(object sender, MessageReceivedEventArgs e)
+    {
+        AddInfoLog($"Received FCM message: {e.Message.MessageId}");
+
+        // Log the notification data
+        if (e.Message.Data != null)
+        {
+            foreach (var kvp in e.Message.Data)
+            {
+                AddInfoLog($"  Data: {kvp.Key} = {kvp.Value}");
+            }
+        }
+
+        // Check if this is a WiseTrack notification
+        if (WiseTrackBridge.IsWiseTrackNotificationPayload(e.Message.Data))
+        {
+            AddInfoLog("WiseTrack notification payload detected");
+            // WiseTrack handle the notification
+            return;
+        }
+
+        // Log notification body if available
+        if (e.Message.Notification != null)
+        {
+            AddInfoLog($"  Title: {e.Message.Notification.Title}");
+            AddInfoLog($"  Body: {e.Message.Notification.Body}");
+        }
     }
 
     void OnStartSdkClicked()
@@ -46,6 +158,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         if (!sdkInitialized)
         {
             string appToken = appTokenInput.text;
+            string clientSecret = clientSecretInput.text;
             string defaultTracker = defaultTrackerInput.text;
             string storeName = storeNameInput.text;
 
@@ -55,6 +168,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             WTInitialConfig config = new WTInitialConfig
             {
                 AppToken = appToken,
+                ClientSecret = clientSecret,
                 UserEnvironment = WTUserEnvironment.Production,
                 AndroidStore = string.IsNullOrEmpty(storeName) ? WTAndroidStore.Other : WTAndroidStore.FromString(storeName),
                 IOSStore = string.IsNullOrEmpty(storeName) ? WTIOSStore.Other : WTIOSStore.FromString(storeName),
@@ -129,7 +243,32 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
 
     void OnPushTokenClicked()
     {
-        WiseTrackBridge.SetFCMToken("my-unity-fcm-token");
+        if (firebaseInitialized)
+        {
+            // Get the current FCM token
+            GetFcmToken();
+        }
+        else
+        {
+            AddErrorLog("Firebase not initialized yet");
+        }
+    }
+
+    void GetFcmToken()
+    {
+        FirebaseMessaging.GetTokenAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted && !task.IsFaulted)
+            {
+                string token = task.Result;
+                AddInfoLog($"Current FCM Token: {token}");
+                WiseTrackBridge.SetFCMToken(token);
+            }
+            else
+            {
+                AddErrorLog("Failed to get FCM token");
+            }
+        });
     }
 
     void OnCreateEventClicked()
@@ -190,6 +329,19 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
                 return;
         }
         WiseTrackBridge.LogEvent(Event);
+    }
+
+    void OnDestroy()
+    {
+        // Unsubscribe from deep link events
+        WiseTrackBridge.OnDeepLinkReceived -= OnDeepLinkReceived;
+
+        // Unsubscribe from Firebase events
+        if (firebaseInitialized)
+        {
+            FirebaseMessaging.TokenReceived -= OnTokenReceived;
+            FirebaseMessaging.MessageReceived -= OnMessageReceived;
+        }
     }
 
     public void AddLog(string logText, Color? textColor = null)
