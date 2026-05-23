@@ -1,28 +1,26 @@
 using System;
 using System.Collections.Generic;
-using WiseTrack.Core;
 
-namespace WiseTrack.Runtime
+[Serializable]
+public class WTInitialConfig
 {
-    [Serializable]
-    public class WTInitialConfig
-    {
-        public string AppToken;
-        public string ClientSecret;
-        public WTUserEnvironment UserEnvironment = WTUserEnvironment.Sandbox;
-        public WTAndroidStore AndroidStore = WTAndroidStore.Other;
-        public WTIOSStore IOSStore = WTIOSStore.Other;
-        public int TrackingWaitingTime = 0;
-        public bool StartTrackerAutomatically = true;
-        public string CustomDeviceId = null;
-        public string DefaultTracker = null;
-        public bool DeeplinkEnabled = true;
-        public WTLogLevel LogLevel = WTResources.DefaultLogLevel;
-        public bool OaidEnabled = false;
+    public string AppToken;
+    public string ClientSecret;
+    public WTUserEnvironment UserEnvironment = WTUserEnvironment.Sandbox;
+    public WTAndroidStore AndroidStore = WTAndroidStore.Other;
+    public WTIOSStore IOSStore = WTIOSStore.Other;
+    public int TrackingWaitingTime = 0;
+    public bool StartTrackerAutomatically = true;
+    public string CustomDeviceId = null;
+    public string DefaultTracker = null;
+    public bool DeeplinkEnabled = true;
+    public WTLogLevel LogLevel = WTResources.DefaultLogLevel;
+    public bool OaidEnabled = false;
+    public bool AutoTrackScenes = true;
 
-        public Dictionary<string, object> ToMap()
-        {
-            var map = new Dictionary<string, object>
+    public Dictionary<string, object> ToMap()
+    {
+        var map = new Dictionary<string, object>
         {
             { "app_token", AppToken },
             { "client_secret", ClientSecret },
@@ -40,7 +38,6 @@ namespace WiseTrack.Runtime
             { "oaid_enabled", OaidEnabled },
         };
 
-            return map;
-        }
+        return map;
     }
 }

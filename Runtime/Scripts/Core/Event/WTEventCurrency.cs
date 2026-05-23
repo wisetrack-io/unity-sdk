@@ -1,7 +1,5 @@
-namespace WiseTrack.Runtime
+public enum WTRevenueCurrency
 {
-  public enum WTRevenueCurrency
-  {
     USD,
     EUR,
     JPY,
@@ -30,5 +28,4 @@ namespace WiseTrack.Runtime
     BTC,
     EHT,
     LTC,
-  }
 }

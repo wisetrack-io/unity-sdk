@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0]
+
+### Added
+
+- Added `TrackScreen()` method for manual screen tracking (UI panels, menus, dialogs, state machines)
+- Added `WTScreen` model with `Name`, `DisplayName`, `Type` (`Page`, `Dialog`, `BottomSheet`, `Other`), and `Params` fields
+- Added `WTScreenType` enum for screen presentation style
+- Added automatic Unity scene tracking via internal `WTSceneTracker` singleton
+  - Listens to `SceneManager.sceneLoaded`, tracks Single-mode loads only
+  - Deduplicates consecutive identical scene names
+  - Tracks initial scene on `Init()`
+- Added `AutoTrackScenes` flag to `WTInitialConfig` (default: `true`) to opt out of automatic scene tracking
+
 ## [2.1.1]
 
 ### Enhanced

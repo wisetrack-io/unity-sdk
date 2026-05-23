@@ -6,7 +6,7 @@ import android.util.Log
 import org.json.JSONObject
 import com.unity3d.player.UnityPlayer
 import io.wisetrack.sdk.core.WiseTrack
-import io.wisetrack.sdk.core.models.EventParam
+import io.wisetrack.sdk.core.models.WTParam
 import io.wisetrack.sdk.core.models.RevenueCurrency
 import io.wisetrack.sdk.core.models.WTEvent
 import io.wisetrack.sdk.core.models.WTEventType
@@ -15,7 +15,10 @@ import io.wisetrack.sdk.core.models.WTUserEnvironment
 import io.wisetrack.sdk.core.models.WTInitialConfig
 import io.wisetrack.sdk.core.utils.wrapper.ResourceWrapper
 import io.wisetrack.sdk.core.models.WTLogLevel
+import io.wisetrack.sdk.core.models.WTScreen
+import io.wisetrack.sdk.core.models.WTScreenType
 import io.wisetrack.sdk.core.resources.WTLoggerOutput
+import io.wisetrack.sdk.core.screen.WTScreenAutoTrackingConfig
 
 
 object WiseTrackUnityPlugin {
@@ -60,6 +63,7 @@ object WiseTrackUnityPlugin {
                 deeplinkEnabled = deeplinkEnabled,
                 logLevel = WTLogLevel.fromPriority(logLevel),
                 oaidEnabled = oaidEnabled,
+                screenTrackingConfig = WTScreenAutoTrackingConfig(enabled = false),
             )
 
             WiseTrack.initialize(getActivity(), config)
@@ -131,7 +135,7 @@ object WiseTrackUnityPlugin {
     }
 
     @JvmStatic
-    fun logEvent(json: String) {
+    fun trackEvent(json: String) {
         val jsonObject = JSONObject(json)
         val name = jsonObject.getString("name")
         val type = jsonObject.getString("type")
@@ -139,15 +143,15 @@ object WiseTrackUnityPlugin {
         val currency = jsonObject.optString("currency", "USD")
 
         val paramsJson = jsonObject.optJSONObject("params")
-        val paramsMap = mutableMapOf<String, EventParam>()
+        val paramsMap = mutableMapOf<String, WTParam>()
 
         if (paramsJson != null) {
             for (key in paramsJson.keys()) {
                 paramsMap[key] = when (val value = paramsJson.get(key)) {
-                    is Int -> EventParam(value.toDouble())
-                    is Double -> EventParam(value)
-                    is Boolean -> EventParam(value)
-                    else -> EventParam(value.toString())
+                    is Int -> WTParam(value.toDouble())
+                    is Double -> WTParam(value)
+                    is Boolean -> WTParam(value)
+                    else -> WTParam(value.toString())
                 }
             }
         }
@@ -163,7 +167,46 @@ object WiseTrackUnityPlugin {
             WTEvent.defaultEvent(name, params = paramsMap)
         }
 
-        WiseTrack.logEvent(event)
+        WiseTrack.trackEvent(event)
+    }
+
+    @JvmStatic
+    fun trackScreen(json: String) {
+        val jsonObject = JSONObject(json)
+        val name = jsonObject.getString("name")
+        val displayName = jsonObject.optString("display_name")
+        val trigger = jsonObject.optString("trigger")
+
+        var screenType: WTScreenType
+        try {
+            screenType = WTScreenType.valueOf(jsonObject.getString("type").uppercase())
+        } catch (e: Throwable) {
+            screenType = WTScreenType.OTHER
+        }
+
+        val paramsJson = jsonObject.optJSONObject("params")
+        val paramsMap = mutableMapOf<String, WTParam>()
+
+        if (paramsJson != null) {
+            for (key in paramsJson.keys()) {
+                paramsMap[key] = when (val value = paramsJson.get(key)) {
+                    is Int -> WTParam(value.toDouble())
+                    is Double -> WTParam(value)
+                    is Boolean -> WTParam(value)
+                    else -> WTParam(value.toString())
+                }
+            }
+        }
+        val screen = WTScreen(
+            name = name,
+            displayName = displayName,
+            type = screenType,
+            params = paramsMap,
+            trigger = trigger,
+        )
+        screen.isAuto = jsonObject.optBoolean("is_auto") == true
+
+        WiseTrack.trackScreen(screen)
     }
 
     @JvmStatic

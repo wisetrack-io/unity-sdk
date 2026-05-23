@@ -12,6 +12,7 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
   - [Starting/Stopping Tracking](#startingstopping-tracking)
   - [Uninstall Detection and Setting Push Notification Tokens](#uninstall-detection-and-setting-push-notification-tokens)
   - [Logging Custom Events](#logging-custom-events)
+  - [Screen Tracking](#screen-tracking)
   - [Setting Log Levels](#setting-log-levels)
   - [Retrieving Advertising IDs](#retrieving-advertising-ids)
 - [Deep Linking](#deep-linking)
@@ -154,7 +155,6 @@ To start using the WiseTrack Unity Package, initialize it with a configuration o
 
 ```csharp
 using UnityEngine;
-using WiseTrack.Runtime;
 
 public class GameInitializer : MonoBehaviour
 {
@@ -170,7 +170,7 @@ public class GameInitializer : MonoBehaviour
             LogLevel = WTLogLevel.Warning
         };
 
-        WiseTrackBridge.Initialize(config);
+        WiseTrack.Initialize(config);
     }
 }
 ```
@@ -187,13 +187,13 @@ Enable or disable tracking at runtime:
 
 ```csharp
 // Enable tracking
-WiseTrackBridge.SetEnabled(true);
+WiseTrack.SetEnabled(true);
 
 // Disable tracking
-WiseTrackBridge.SetEnabled(false);
+WiseTrack.SetEnabled(false);
 
 // Check if tracking is enabled
-bool isTrackingEnabled = WiseTrackBridge.IsEnabled();
+bool isTrackingEnabled = WiseTrack.IsEnabled();
 Debug.Log($"Tracking enabled: {isTrackingEnabled}");
 ```
 
@@ -203,10 +203,10 @@ Manually control tracking:
 
 ```csharp
 // Start tracking
-WiseTrackBridge.StartTracking();
+WiseTrack.StartTracking();
 
 // Stop tracking
-WiseTrackBridge.StopTracking();
+WiseTrack.StopTracking();
 ```
 
 
@@ -228,7 +228,7 @@ Once FCM is configured, you need to get Fcm token and pass them to WiseTrack:
       if (task.IsCompleted && !task.IsFaulted)
       {
           string token = task.Result;
-          WiseTrackBridge.SetFCMToken(token);
+          WiseTrack.SetFCMToken(token);
       }
     });
 
@@ -236,7 +236,7 @@ Once FCM is configured, you need to get Fcm token and pass them to WiseTrack:
     FirebaseMessaging.TokenReceived += OnTokenReceived;
     void OnTokenReceived(object sender, TokenReceivedEventArgs token)
     {
-        WiseTrackBridge.SetFCMToken(token.Token);
+        WiseTrack.SetFCMToken(token.Token);
     }
 ```
 
@@ -248,7 +248,7 @@ And finally inside your `FirebaseMessaging.MessageReceived` handlers, call the f
     FirebaseMessaging.MessageReceived += OnMessageReceived;
     void OnMessageReceived(object sender, MessageReceivedEventArgs e)
     {
-        if (WiseTrackBridge.IsWiseTrackNotificationPayload(e.Message.Data))
+        if (WiseTrack.IsWiseTrackNotificationPayload(e.Message.Data))
         {
             // This notification is handled internally by WiseTrack.
             return;
@@ -271,20 +271,58 @@ var Params = new Dictionary<string, WTParamValue>
     { "param-3", WTParamValue.FromDynamic(true) },
 };
 WTEvent Event = WTEvent.DefaultEvent("default-event", Params);
-WiseTrackBridge.LogEvent(Event);
+WiseTrack.TrackEvent(Event);
 
 // Log a revenue event
 WTEvent Event = WTEvent.RevenueEvent("revenue-event", WTRevenueCurrency.IRR, 120000, Params);
-WiseTrackBridge.LogEvent(Event);
+WiseTrack.TrackEvent(Event);
 ```
 **Note:** Event parameter keys and values have a maximum limit of 50 characters.
+
+### Screen Tracking
+
+WiseTrack supports both automatic scene tracking and manual screen tracking.
+
+#### Auto Tracking (Scenes)
+
+Enabled by default. WiseTrack automatically tracks every Unity scene load (Single mode only). To disable:
+
+```csharp
+var config = new WTInitialConfig
+{
+    AppToken = "your-app-token",
+    AutoTrackScenes = false
+};
+WiseTrack.Initialize(config);
+```
+
+#### Manual Tracking
+
+For UI panels, menus, dialogs, and state machine navigation:
+
+```csharp
+// Simple
+WiseTrack.TrackScreen(new WTScreen(name: "shop_menu"));
+
+// With type and parameters
+WiseTrack.TrackScreen(new WTScreen(
+    name: "product_detail",
+    type: WTScreenType.Page,
+    parameters: new Dictionary<string, WTParamValue>
+    {
+        ["product_id"] = WTParamValue.FromDynamic("sword_001")
+    }
+));
+```
+
+**Note:** Screen name has a maximum limit of 50 characters.
 
 ### Setting Log Levels
 
 Control the verbosity of SDK logs:
 
 ```csharp
-WiseTrackBridge.SetLogLevel(WTLogLevel.Debug); // Options: None, Error, Warning, Info, Debug
+WiseTrack.SetLogLevel(WTLogLevel.Debug); // Options: None, Error, Warning, Info, Debug
 ```
 
 ### Retrieving Advertising IDs
@@ -293,7 +331,7 @@ Retrieve the Advertising ID (Ad ID) on Android:
 
 ```csharp
 // Get Ad ID (Android)
-string adId = WiseTrackBridge.GetAdId();
+string adId = WiseTrack.GetAdId();
 Debug.Log($"Ad ID: {(string.IsNullOrEmpty(adId) ? "Not available" : adId)}");
 ```
 
@@ -314,7 +352,7 @@ var config = new WTInitialConfig
     DeeplinkEnabled = true  // Enable deep linking
 };
 
-WiseTrackBridge.Initialize(config);
+WiseTrack.Initialize(config);
 ```
 
 ### Listening for Deep Links
@@ -323,18 +361,16 @@ You can register a callback to be notified when deep links are received:
 
 ```csharp
 using UnityEngine;
-using WiseTrack.Runtime;
-using WiseTrack.Core;
 
 public class DeepLinkHandler : MonoBehaviour
 {
     void Start()
     {
         // Option 1: Subscribe to the event
-        WiseTrackBridge.OnDeepLinkReceived += OnDeepLink;
+        WiseTrack.OnDeepLinkReceived += OnDeepLink;
 
         // Option 2: Use SetDeeplinkListener method
-        WiseTrackBridge.SetDeeplinkListener(data => {
+        WiseTrack.SetDeeplinkListener(data => {
             Debug.Log($"Deep link received: {data.Url}");
         });
     }
@@ -368,7 +404,7 @@ public class DeepLinkHandler : MonoBehaviour
     void OnDestroy()
     {
         // Always unsubscribe when the object is destroyed
-        WiseTrackBridge.OnDeepLinkReceived -= OnDeepLink;
+        WiseTrack.OnDeepLinkReceived -= OnDeepLink;
     }
 }
 ```
@@ -379,14 +415,14 @@ You can also retrieve deep links programmatically:
 
 ```csharp
 // Get the last received direct deep link
-string lastDeepLink = WiseTrackBridge.GetLastDeeplink();
+string lastDeepLink = WiseTrack.GetLastDeeplink();
 if (!string.IsNullOrEmpty(lastDeepLink))
 {
     Debug.Log($"Last Deep Link: {lastDeepLink}");
 }
 
 // Get the deferred deep link (from new install)
-string deferredDeepLink = WiseTrackBridge.GetDeferredDeeplink();
+string deferredDeepLink = WiseTrack.GetDeferredDeeplink();
 if (!string.IsNullOrEmpty(deferredDeepLink))
 {
     Debug.Log($"Deferred Deep Link: {deferredDeepLink}");
@@ -410,6 +446,7 @@ Customize the SDK behavior through the `WTInitialConfig` parameters:
 - `DeeplinkEnabled`: Enable or disable deep linking support (default: `true`).
 - `LogLevel`: Set the initial log level.
 - `OaidEnabled`: Indicates whether the Open Advertising ID (OAID) is enabled.
+- `AutoTrackScenes`: Automatically track Unity scene loads (default: `true`).
 
 Example with advanced configuration:
 
@@ -429,7 +466,7 @@ var config = new WTInitialConfig
     OaidEnabled = false
 };
 
-WiseTrackBridge.Initialize(config);
+WiseTrack.Initialize(config);
 ```
 
 ## Example Project

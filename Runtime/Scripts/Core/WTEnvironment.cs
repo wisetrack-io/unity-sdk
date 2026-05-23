@@ -1,18 +1,12 @@
-namespace WiseTrack.Runtime
+public enum WTUserEnvironment
 {
-    public enum WTUserEnvironment
-    {
-        Sandbox,
-        Production
-    }
+    Sandbox,
+    Production
 }
 
-namespace WiseTrack.Core
+public enum WTSDKEnvironment
 {
-    public enum WTSDKEnvironment
-    {
-        Debug,
-        Stage,
-        Production
-    }
+    Debug,
+    Stage,
+    Production
 }

@@ -1,100 +1,101 @@
 using UnityEngine;
-using WiseTrack.Runtime;
-using WiseTrack.Core;
 
-namespace WiseTrack.Platform
-{
 #if UNITY_ANDROID && !UNITY_EDITOR
-    public class AndroidPlatform : IWiseTrack
-    {
-        private static AndroidJavaClass pluginClass = new AndroidJavaClass("io.wisetrack.sdk.unity.WiseTrackUnityPlugin");
+public class AndroidPlatform : IWiseTrack
+{
+    private static AndroidJavaClass pluginClass = new AndroidJavaClass("io.wisetrack.sdk.unity.WiseTrackUnityPlugin");
 
-        public AndroidPlatform(){
-            EnsureInitialized();
-            AddLoggerOutput();
-        }
-
-        public void Initialize(WTInitialConfig wtConfig)
-        {
-            string json = JsonParser.Serialize(wtConfig.ToMap());
-            pluginClass.CallStatic("initialize", json);
-        }
-
-        public void EnsureInitialized()
-        {
-            pluginClass.CallStatic("ensureInitialized");
-        }
-
-        public void AddLoggerOutput()
-        {
-            pluginClass.CallStatic("addLoggerOutput");
-        }
-
-        public void SetLogLevel(WTLogLevel level)
-        {
-            pluginClass.CallStatic("setLogLevel", (int)level);
-        }
-
-        public void ClearDataAndStop()
-        {
-            pluginClass.CallStatic("clearDataAndStop");
-        }
-
-        public void SetEnabled(bool enabled)
-        {
-            pluginClass.CallStatic("setEnabled", enabled);
-        }
-
-        public bool IsEnabled()
-        {
-            return pluginClass.CallStatic<bool>("isEnabled");
-        }
-
-        public void StartTracking()
-        {
-            pluginClass.CallStatic("startTracking");
-        }
-
-        public void StopTracking()
-        {
-            pluginClass.CallStatic("stopTracking");
-        }
-
-        public void SetFCMToken(string token)
-        {
-            pluginClass.CallStatic("setFCMToken", token);
-        }
-
-        public void LogEvent(WTEvent wtEvent)
-        {
-            string json = JsonParser.Serialize(wtEvent.ToMap());
-            pluginClass.CallStatic("logEvent", json);
-        }
-
-        public string GetAdId()
-        {
-            return pluginClass.CallStatic<string>("getAdId");
-        }
-
-        public string GetReferrer()
-        {
-            return pluginClass.CallStatic<string>("getReferrer");
-        }
-
-        public bool IsWiseTrackNotificationPayload(string payload)
-        {
-            return pluginClass.CallStatic<bool>("isWiseTrackNotificationPayload", payload);
-        }
-
-        public string GetLastDeeplink()
-        {
-            return pluginClass.CallStatic<string>("getLastDeeplink");
-        }
-
-        public string GetDeferredDeeplink()
-        {
-            return pluginClass.CallStatic<string>("getDeferredDeeplink");
-        }
+    public AndroidPlatform(){
+        EnsureInitialized();
+        AddLoggerOutput();
     }
-#endif
+
+    public void Initialize(WTInitialConfig wtConfig)
+    {
+        string json = JsonParser.Serialize(wtConfig.ToMap());
+        pluginClass.CallStatic("initialize", json);
+    }
+
+    public void EnsureInitialized()
+    {
+        pluginClass.CallStatic("ensureInitialized");
+    }
+
+    public void AddLoggerOutput()
+    {
+        pluginClass.CallStatic("addLoggerOutput");
+    }
+
+    public void SetLogLevel(WTLogLevel level)
+    {
+        pluginClass.CallStatic("setLogLevel", (int)level);
+    }
+
+    public void ClearDataAndStop()
+    {
+        pluginClass.CallStatic("clearDataAndStop");
+    }
+
+    public void SetEnabled(bool enabled)
+    {
+        pluginClass.CallStatic("setEnabled", enabled);
+    }
+
+    public bool IsEnabled()
+    {
+        return pluginClass.CallStatic<bool>("isEnabled");
+    }
+
+    public void StartTracking()
+    {
+        pluginClass.CallStatic("startTracking");
+    }
+
+    public void StopTracking()
+    {
+        pluginClass.CallStatic("stopTracking");
+    }
+
+    public void SetFCMToken(string token)
+    {
+        pluginClass.CallStatic("setFCMToken", token);
+    }
+
+    public void TrackEvent(WTEvent wtEvent)
+    {
+        string json = JsonParser.Serialize(wtEvent.ToMap());
+        pluginClass.CallStatic("trackEvent", json);
+    }
+
+    public void TrackScreen(WTScreen wtScreen)
+    {
+        string json = JsonParser.Serialize(wtScreen.ToMap());
+        pluginClass.CallStatic("trackScreen", json);
+    }
+
+    public string GetAdId()
+    {
+        return pluginClass.CallStatic<string>("getAdId");
+    }
+
+    public string GetReferrer()
+    {
+        return pluginClass.CallStatic<string>("getReferrer");
+    }
+
+    public bool IsWiseTrackNotificationPayload(string payload)
+    {
+        return pluginClass.CallStatic<bool>("isWiseTrackNotificationPayload", payload);
+    }
+
+    public string GetLastDeeplink()
+    {
+        return pluginClass.CallStatic<string>("getLastDeeplink");
+    }
+
+    public string GetDeferredDeeplink()
+    {
+        return pluginClass.CallStatic<string>("getDeferredDeeplink");
+    }
 }
+#endif

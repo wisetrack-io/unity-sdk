@@ -1,6 +1,6 @@
 {
     "name": "WiseTrack.Runtime",
-    "rootNamespace": "WiseTrack.Runtime",
+    "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

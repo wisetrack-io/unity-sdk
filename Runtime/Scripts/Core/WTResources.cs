@@ -1,11 +1,6 @@
-using WiseTrack.Runtime;
-
-namespace WiseTrack.Core
+public class WTResources
 {
-    public class WTResources
-    {
-        public static readonly string SdkVersion = "2.1.1";
-        public static readonly WTLogLevel DefaultLogLevel = WTLogLevel.Debug;
-        public static WTSDKEnvironment DefaultSdkEnv = WTSDKEnvironment.Production;
-    }
+    public static readonly string SdkVersion = "2.2.0";
+    public static readonly WTLogLevel DefaultLogLevel = WTLogLevel.Debug;
+    public static WTSDKEnvironment DefaultSdkEnv = WTSDKEnvironment.Production;
 }

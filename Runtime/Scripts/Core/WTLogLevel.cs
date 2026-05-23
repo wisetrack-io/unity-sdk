@@ -1,10 +1,7 @@
-namespace WiseTrack.Runtime
+public enum WTLogLevel
 {
-    public enum WTLogLevel
-    {
-        Debug = 3,
-        Info = 4,
-        Warning = 5,
-        Error = 6
-    }
+    Debug = 3,
+    Info = 4,
+    Warning = 5,
+    Error = 6
 }

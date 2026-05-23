@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
-using WiseTrack.Runtime;
-using WiseTrack.Core;
 using Firebase.Extensions;
 using Firebase.Messaging;
 
@@ -24,7 +23,9 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     public Button getInfoBtn;
     public Button clearDataBtn;
     public Button startSdkBtn;
-    public Button testNotificationBtn;
+    public Button trackScreenBtn;
+    public Button trackScreenNoParamsBtn;
+    public Button goToSecondSceneBtn;
     public ScrollRect scrollRect;
 
 
@@ -45,11 +46,15 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         getInfoBtn.onClick.AddListener(OnGetInfoClicked);
         clearDataBtn.onClick.AddListener(OnClearDataClicked);
         createEventBtn.onClick.AddListener(OnCreateEventClicked);
+        trackScreenBtn?.onClick.AddListener(OnTrackScreenClicked);
+        trackScreenNoParamsBtn?.onClick.AddListener(OnTrackScreenNoParamsClicked);
+        goToSecondSceneBtn?.onClick.AddListener(OnGoToSecondSceneClicked);
 
+        WTResources.DefaultSdkEnv = WTSDKEnvironment.Debug;
         WiseTrackLogger.AddLogger(this);
 
         // Subscribe to deep link events
-        WiseTrackBridge.OnDeepLinkReceived += OnDeepLinkReceived;
+        WiseTrack.OnDeepLinkReceived += OnDeepLinkReceived;
 
         // Initialize Firebase
         SetupFirebase();
@@ -121,7 +126,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         AddInfoLog($"FCM Token refreshed: {token.Token}");
 
         // Update the token in WiseTrack
-        WiseTrackBridge.SetFCMToken(token.Token);
+        WiseTrack.SetFCMToken(token.Token);
     }
 
     void OnMessageReceived(object sender, MessageReceivedEventArgs e)
@@ -138,7 +143,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         }
 
         // Check if this is a WiseTrack notification
-        if (WiseTrackBridge.IsWiseTrackNotificationPayload(e.Message.Data))
+        if (WiseTrack.IsWiseTrackNotificationPayload(e.Message.Data))
         {
             AddInfoLog("WiseTrack notification payload detected");
             // WiseTrack handle the notification
@@ -176,7 +181,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
                 LogLevel = selectedLogLevel,
             };
 
-            WiseTrackBridge.Initialize(config);
+            WiseTrack.Initialize(config);
             sdkInitialized = true;
             sdkRunning = true;
             ChangeMainButton("Stop SDK", new Color32(243, 23, 23, 255));
@@ -185,7 +190,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         {
             if (sdkRunning)
             {
-                WiseTrackBridge.StopTracking();
+                WiseTrack.StopTracking();
                 sdkRunning = false;
                 ChangeMainButton("Start SDK", new Color32(0, 176, 82, 255));
             }
@@ -193,7 +198,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             {
                 sdkRunning = true;
                 ChangeMainButton("Stop SDK", new Color32(243, 23, 23, 255));
-                WiseTrackBridge.StartTracking();
+                WiseTrack.StartTracking();
             }
         }
     }
@@ -210,7 +215,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     void OnToggleEnabledClicked()
     {
         sdkEnabled = !sdkEnabled;
-        WiseTrackBridge.SetEnabled(sdkEnabled);
+        WiseTrack.SetEnabled(sdkEnabled);
     }
 
     void OnLogLevelChanged(int value)
@@ -218,14 +223,14 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         string levelText = logLevelField.options[logLevelField.value].text;
         WTLogLevel selectedLogLevel = (WTLogLevel)System.Enum.Parse(typeof(WTLogLevel), levelText);
 
-        WiseTrackBridge.SetLogLevel(selectedLogLevel);
+        WiseTrack.SetLogLevel(selectedLogLevel);
     }
 
     void OnClearDataClicked()
     {
         sdkInitialized = false;
         sdkRunning = false;
-        WiseTrackBridge.ClearDataAndStop();
+        WiseTrack.ClearDataAndStop();
 
         ChangeMainButton("Initial SDK", new Color32(51, 51, 255, 255));
     }
@@ -233,9 +238,9 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     void OnGetInfoClicked()
     {
         // SetEnabled(bool)
-        var referrer = WiseTrackBridge.GetReferrer();
-        var adId = WiseTrackBridge.GetAdId();
-        var isEnabled = WiseTrackBridge.IsEnabled();
+        var referrer = WiseTrack.GetReferrer();
+        var adId = WiseTrack.GetAdId();
+        var isEnabled = WiseTrack.IsEnabled();
         Debug.Log("SDK.Enabled= " + isEnabled.ToString());
         Debug.Log("SDK.AdID= " + adId);
         Debug.Log("SDK.Referrer= " + referrer);
@@ -262,7 +267,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             {
                 string token = task.Result;
                 AddInfoLog($"Current FCM Token: {token}");
-                WiseTrackBridge.SetFCMToken(token);
+                WiseTrack.SetFCMToken(token);
             }
             else
             {
@@ -328,13 +333,48 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             default:
                 return;
         }
-        WiseTrackBridge.LogEvent(Event);
+        WiseTrack.TrackEvent(Event);
+    }
+
+    void OnTrackScreenClicked()
+    {
+        string screenName = "TestScreen";
+        var paramsDict = new Dictionary<string, WTParamValue>
+        {
+            { "key-1", WTParamValue.FromDynamic(1.1) },
+            { "key-2", WTParamValue.FromDynamic(true) },
+            { "key-3", WTParamValue.FromDynamic("value-1") }
+        };
+        var screen = new WTScreen(
+            name: screenName,
+            type: WTScreenType.Page,
+            parameters: paramsDict
+        );
+        WiseTrack.TrackScreen(screen);
+        AddInfoLog($"TrackScreen called: {screenName} (params=1)");
+    }
+
+    void OnTrackScreenNoParamsClicked()
+    {
+        string screenName = "TestScreenNoParam";
+        var screen = new WTScreen(
+            name: screenName,
+            type: WTScreenType.Page
+        );
+        WiseTrack.TrackScreen(screen);
+        AddInfoLog($"TrackScreen called: {screenName} (no params)");
+    }
+
+    void OnGoToSecondSceneClicked()
+    {
+        AddInfoLog("Loading SecondScene...");
+        SceneManager.LoadScene("SecondScene");
     }
 
     void OnDestroy()
     {
         // Unsubscribe from deep link events
-        WiseTrackBridge.OnDeepLinkReceived -= OnDeepLinkReceived;
+        WiseTrack.OnDeepLinkReceived -= OnDeepLinkReceived;
 
         // Unsubscribe from Firebase events
         if (firebaseInitialized)
