@@ -1,18 +1,9 @@
 {
   "name": "io.wisetrack.sdk.unity",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "displayName": "WiseTrack Unity SDK",
-  "description": "WiseTrack analytics and attribution SDK for Unity",
+  "description": "WiseTrack analytics and attribution SDK for Unity (Android).\n\nRequires External Dependency Manager for Unity (EDM4U) to resolve the Android native SDK. See the README for installation steps.",
   "unity": "2019.4",
-  "requirements": {
-    "android": {
-      "minSdkVersion": 21,
-      "kotlinVersion": "1.9.0"
-    }
-  },
-  "dependencies": {
-    "com.google.external-dependency-manager": "1.2.177"
-  },
   "keywords": [
     "analytics",
     "attribution",
@@ -22,13 +13,16 @@
   ],
   "author": {
     "name": "WiseTrack",
-    "email": "thisismovahhed@gmail.com",
+    "email": "support@wisetrack.io",
     "url": "https://wisetrack.io"
   },
+  "documentationUrl": "https://github.com/wisetrack-io/unity-sdk#readme",
+  "changelogUrl": "https://github.com/wisetrack-io/unity-sdk/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/wisetrack-io/unity-sdk/blob/main/LICENSE",
   "samples": [
     {
       "displayName": "Basic Sample",
-      "description": "This Sample contains a Scene and a Script.",
+      "description": "Two scenes and scripts demonstrating initialization, events, screen tracking, deep links and logging. Optional Firebase (FCM) code is enabled with the WISETRACK_FIREBASE scripting define.",
       "path": "Samples~/"
     }
   ],

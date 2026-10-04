@@ -1,6 +1,7 @@
-public interface IWiseTrack
+internal interface IWiseTrack
 {
     void Initialize(WTInitialConfig wtConfig);
+    void EnableNativeLogs();
     void SetLogLevel(WTLogLevel level);
     void ClearDataAndStop();
     void SetEnabled(bool enabled);

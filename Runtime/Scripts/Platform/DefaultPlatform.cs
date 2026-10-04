@@ -1,90 +1,103 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-public class DefaultPlatform : IWiseTrack
+/// <summary>
+/// No-op implementation used in the Editor and on platforms without a native SDK (iOS is not supported yet).
+/// Each method logs a single notice the first time it is called, to avoid flooding the console.
+/// </summary>
+internal class DefaultPlatform : IWiseTrack
 {
-    public void Initialize(WTInitialConfig wtConfig)
+    private readonly HashSet<string> notified = new HashSet<string>();
+
+    private void Notice(string method, string result = null)
     {
-        Debug.Log("WiseTrack.Initialize() called in Editor/iOS - functionality disabled");
+        if (!notified.Add(method)) return;
+        Debug.Log($"WiseTrack.{method}() is not supported on this platform (Editor/iOS) - " +
+                  (result ?? "call ignored") + ". Further calls will not be logged.");
     }
 
-    protected void AddLoggerOutput()
+    public void Initialize(WTInitialConfig wtConfig)
     {
-        Debug.Log("WiseTrack.AddLoggerOutput() called in Editor/iOS - functionality disabled");
+        Notice("Initialize");
+    }
+
+    public void EnableNativeLogs()
+    {
     }
 
     public void SetLogLevel(WTLogLevel level)
     {
-        Debug.Log($"WiseTrack.SetLogLevel({level}) called in Editor/iOS - functionality disabled");
+        Notice("SetLogLevel");
     }
 
     public void ClearDataAndStop()
     {
-        Debug.Log("WiseTrack.ClearDataAndStop() called in Editor/iOS - functionality disabled");
+        Notice("ClearDataAndStop");
     }
 
     public void SetEnabled(bool enabled)
     {
-        Debug.Log($"WiseTrack.SetEnabled({enabled}) called in Editor/iOS - functionality disabled");
+        Notice("SetEnabled");
     }
 
     public bool IsEnabled()
     {
-        Debug.Log("WiseTrack.IsEnabled() called in Editor/iOS - returning false");
+        Notice("IsEnabled", "returning false");
         return false;
     }
 
     public void StartTracking()
     {
-        Debug.Log("WiseTrack.StartTracking() called in Editor/iOS - functionality disabled");
+        Notice("StartTracking");
     }
 
     public void StopTracking()
     {
-        Debug.Log("WiseTrack.StopTracking() called in Editor/iOS - functionality disabled");
+        Notice("StopTracking");
     }
 
     public void SetFCMToken(string token)
     {
-        Debug.Log($"WiseTrack.SetFCMToken({token}) called in Editor/iOS - functionality disabled");
+        Notice("SetFCMToken");
     }
 
     public void TrackEvent(WTEvent wtEvent)
     {
-        Debug.Log($"WiseTrack.TrackEvent({wtEvent?.Name}) called in Editor/iOS - functionality disabled");
+        Notice("TrackEvent");
     }
 
     public void TrackScreen(WTScreen wtScreen)
     {
-        Debug.Log($"WiseTrack.TrackScreen({wtScreen?.Name}) called in Editor/iOS - functionality disabled");
+        Notice("TrackScreen");
     }
 
     public string GetAdId()
     {
-        Debug.Log("WiseTrack.GetAdId() called in Editor/iOS - returning empty string");
+        Notice("GetAdId", "returning empty string");
         return "";
     }
 
     public string GetReferrer()
     {
-        Debug.Log("WiseTrack.GetReferrer() called in Editor/iOS - returning empty string");
+        Notice("GetReferrer", "returning empty string");
         return "";
     }
 
     public bool IsWiseTrackNotificationPayload(string payload)
     {
-        Debug.Log($"WiseTrack.IsWiseTrackNotificationPayload({payload}) called in Editor/iOS - returning false");
+        Notice("IsWiseTrackNotificationPayload", "returning false");
         return false;
     }
 
     public string GetLastDeeplink()
     {
-        Debug.Log("WiseTrack.GetLastDeeplink() called in Editor/iOS - returning empty string");
+        Notice("GetLastDeeplink", "returning empty string");
         return "";
     }
 
     public string GetDeferredDeeplink()
     {
-        Debug.Log("WiseTrack.GetDeferredDeeplink() called in Editor/iOS - returning empty string");
+        Notice("GetDeferredDeeplink", "returning empty string");
         return "";
     }
 }

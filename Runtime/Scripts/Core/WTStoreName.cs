@@ -2,10 +2,10 @@ using System.Collections.Generic;
 
 public class WTAndroidStore
 {
-    public static readonly WTAndroidStore PlayStore = new("playstore");
-    public static readonly WTAndroidStore CafeBazaar = new("cafebazaar");
-    public static readonly WTAndroidStore Myket = new("myket");
-    public static readonly WTAndroidStore Other = new("other");
+    public static readonly WTAndroidStore PlayStore = new WTAndroidStore("playstore");
+    public static readonly WTAndroidStore CafeBazaar = new WTAndroidStore("cafebazaar");
+    public static readonly WTAndroidStore Myket = new WTAndroidStore("myket");
+    public static readonly WTAndroidStore Other = new WTAndroidStore("other");
 
     public string Name { get; }
 
@@ -14,11 +14,12 @@ public class WTAndroidStore
         Name = name;
     }
 
-    public static WTAndroidStore Custom(string name) => new(name);
+    public static WTAndroidStore Custom(string name) => new WTAndroidStore(name);
 
     public static WTAndroidStore FromString(string value)
     {
-        value = value.ToLower();
+        if (string.IsNullOrEmpty(value)) return Other;
+        value = value.ToLowerInvariant();
         if (value == PlayStore.Name) return PlayStore;
         if (value == CafeBazaar.Name) return CafeBazaar;
         if (value == Myket.Name) return Myket;
@@ -49,13 +50,13 @@ public class WTAndroidStore
 
 public class WTIOSStore
 {
-    public static readonly WTIOSStore AppStore = new("appstore");
-    public static readonly WTIOSStore Sibche = new("sibche");
-    public static readonly WTIOSStore Sibapp = new("sibapp");
-    public static readonly WTIOSStore Anardoni = new("anardoni");
-    public static readonly WTIOSStore Sibirani = new("sibirani");
-    public static readonly WTIOSStore Sibjo = new("sibjo");
-    public static readonly WTIOSStore Other = new("other");
+    public static readonly WTIOSStore AppStore = new WTIOSStore("appstore");
+    public static readonly WTIOSStore Sibche = new WTIOSStore("sibche");
+    public static readonly WTIOSStore Sibapp = new WTIOSStore("sibapp");
+    public static readonly WTIOSStore Anardoni = new WTIOSStore("anardoni");
+    public static readonly WTIOSStore Sibirani = new WTIOSStore("sibirani");
+    public static readonly WTIOSStore Sibjo = new WTIOSStore("sibjo");
+    public static readonly WTIOSStore Other = new WTIOSStore("other");
 
     public string Name { get; }
 
@@ -64,11 +65,12 @@ public class WTIOSStore
         Name = name;
     }
 
-    public static WTIOSStore Custom(string name) => new(name);
+    public static WTIOSStore Custom(string name) => new WTIOSStore(name);
 
     public static WTIOSStore FromString(string value)
     {
-        value = value.ToLower();
+        if (string.IsNullOrEmpty(value)) return Other;
+        value = value.ToLowerInvariant();
         if (value == AppStore.Name) return AppStore;
         if (value == Sibche.Name) return Sibche;
         if (value == Sibapp.Name) return Sibapp;

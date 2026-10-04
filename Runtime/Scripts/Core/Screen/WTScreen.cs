@@ -1,6 +1,8 @@
-using System;
 using System.Collections.Generic;
 
+/// <summary>
+/// Presentation style of a tracked screen.
+/// </summary>
 public enum WTScreenType
 {
     Page,
@@ -9,7 +11,11 @@ public enum WTScreenType
     Other
 }
 
-[Serializable]
+/// <summary>
+/// Represents a screen (scene, UI panel, menu, dialog, ...) tracked by WiseTrack.
+/// The screen name must be 1-150 characters; parameter keys must be 1-50 characters and
+/// string parameter values at most 100 characters.
+/// </summary>
 public class WTScreen
 {
     public WTScreenType Type { get; }
@@ -39,7 +45,7 @@ public class WTScreen
     {
         var map = new Dictionary<string, object>
         {
-            { "type", Type.ToString().ToLower() },
+            { "type", ToWireName(Type) },
             { "name", Name },
             { "display_name", DisplayName },
             { "trigger", Trigger },
@@ -51,11 +57,25 @@ public class WTScreen
             var paramMap = new Dictionary<string, object>();
             foreach (var kvp in Params)
             {
-                paramMap[kvp.Key] = kvp.Value.Value;
+                paramMap[kvp.Key] = kvp.Value != null ? kvp.Value.Value : null;
             }
             map["params"] = paramMap;
         }
 
         return map;
+    }
+
+    /// <summary>
+    /// Maps the screen type to the identifier used by the native SDK (<c>WTScreenType.sName</c>).
+    /// </summary>
+    internal static string ToWireName(WTScreenType type)
+    {
+        switch (type)
+        {
+            case WTScreenType.Page: return "page";
+            case WTScreenType.Dialog: return "dialog";
+            case WTScreenType.BottomSheet: return "bottom_sheet";
+            default: return "other";
+        }
     }
 }

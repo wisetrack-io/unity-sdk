@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using UnityEngine;
 
 /// <summary>
@@ -16,27 +17,65 @@ public class DeepLinkData
     }
 }
 
-public class WiseTrackManager : MonoBehaviour
+/// <summary>
+/// Receives callbacks from the native plugin (via <c>UnitySendMessage</c>) on the Unity main thread.
+/// The GameObject is created before the first scene loads, so it always exists on the main thread.
+/// </summary>
+internal class WiseTrackManager : MonoBehaviour
 {
+    internal const string GameObjectName = "WiseTrackManager";
+
     private static WiseTrackManager _instance;
+    private static int _mainThreadId = -1;
 
-    /// <summary>
-    /// Event fired when a deep link is received from native platform
-    /// </summary>
-    public static event Action<DeepLinkData> OnDeepLink;
+    private static Action<DeepLinkData> _onDeepLink;
+    // Deep link received while nobody was subscribed; delivered to the first subscriber.
+    private static DeepLinkData _pendingDeepLink;
 
-    public static WiseTrackManager Instance
+    // Filled by JsonUtility.
+#pragma warning disable 0649
+    [Serializable]
+    private class NativeLogMessage
     {
-        get
+        public int level;
+        public string tag;
+        public string message;
+        public string stackTrace;
+    }
+
+    [Serializable]
+    private class NativeDeepLinkMessage
+    {
+        public string url;
+        public bool isDeferred;
+    }
+#pragma warning restore 0649
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Bootstrap()
+    {
+        _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        EnsureCreated();
+    }
+
+    internal static bool IsMainThread
+    {
+        get { return _mainThreadId == -1 || Thread.CurrentThread.ManagedThreadId == _mainThreadId; }
+    }
+
+    internal static void EnsureCreated()
+    {
+        if (_instance != null) return;
+
+        if (!IsMainThread)
         {
-            if (_instance == null)
-            {
-                var go = new GameObject("WiseTrackManager");
-                _instance = go.AddComponent<WiseTrackManager>();
-                DontDestroyOnLoad(go);
-            }
-            return _instance;
+            Debug.LogError("WiseTrack: WiseTrackManager must be created on the Unity main thread.");
+            return;
         }
+
+        var go = new GameObject(GameObjectName);
+        _instance = go.AddComponent<WiseTrackManager>();
+        DontDestroyOnLoad(go);
     }
 
     private void Awake()
@@ -51,64 +90,97 @@ public class WiseTrackManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    /// <summary>
-    /// Called from native Android plugin when a log is received
-    /// </summary>
-    public void OnLogReceived(string logData)
+    private void OnDestroy()
+    {
+        if (_instance == this) _instance = null;
+    }
+
+    internal static void AddDeepLinkListener(Action<DeepLinkData> listener)
+    {
+        if (listener == null) return;
+        _onDeepLink += listener;
+
+        if (_pendingDeepLink != null)
+        {
+            var pending = _pendingDeepLink;
+            _pendingDeepLink = null;
+            SafeInvoke(listener, pending);
+        }
+    }
+
+    internal static void RemoveDeepLinkListener(Action<DeepLinkData> listener)
+    {
+        if (listener == null) return;
+        _onDeepLink -= listener;
+    }
+
+    internal static void DispatchDeepLink(DeepLinkData data)
+    {
+        var handlers = _onDeepLink;
+        if (handlers == null)
+        {
+            _pendingDeepLink = data;
+            return;
+        }
+
+        foreach (Action<DeepLinkData> handler in handlers.GetInvocationList())
+        {
+            SafeInvoke(handler, data);
+        }
+    }
+
+    private static void SafeInvoke(Action<DeepLinkData> handler, DeepLinkData data)
     {
         try
         {
-            var parts = logData.Split('|');
-            int level = int.Parse(parts[0]);
-
-            string tag = parts[1];
-            string message = parts[2];
-            string stackTrace = parts.Length > 3 ? parts[3] : null;
-
-            WiseTrackLogger.OnLogReceived(level, tag, message,
-                string.IsNullOrEmpty(stackTrace) ? null : stackTrace);
-
+            handler(data);
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to parse log data: {e.Message}");
+            Debug.LogError($"WiseTrack: Exception in deep link listener: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Called from native Android plugin when a log is received.
+    /// Message format: JSON <c>{"level":3,"tag":"...","message":"...","stackTrace":"..."}</c>
+    /// </summary>
+    public void OnLogReceived(string json)
+    {
+        try
+        {
+            var log = JsonUtility.FromJson<NativeLogMessage>(json);
+            if (log == null) return;
+
+            WiseTrackLogger.OnLogReceived(log.level, log.tag, log.message,
+                string.IsNullOrEmpty(log.stackTrace) ? null : log.stackTrace);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"WiseTrack: Failed to parse log data: {e.Message}");
         }
     }
 
     /// <summary>
     /// Called from native Android plugin when a deep link is received.
-    /// Message format: "url|isDeferred"
+    /// Message format: JSON <c>{"url":"...","isDeferred":false}</c>
     /// </summary>
-    public void OnDeepLinkReceived(string message)
+    public void OnDeepLinkReceived(string json)
     {
         try
         {
-            if (string.IsNullOrEmpty(message))
+            var message = string.IsNullOrEmpty(json) ? null : JsonUtility.FromJson<NativeDeepLinkMessage>(json);
+            if (message == null || string.IsNullOrEmpty(message.url))
             {
-                Debug.LogWarning("WiseTrack: Received empty deep link message");
+                Debug.LogWarning($"WiseTrack: Invalid deep link message: {json}");
                 return;
             }
 
-            var parts = message.Split('|');
-            if (parts.Length < 2)
-            {
-                Debug.LogWarning($"WiseTrack: Invalid deep link message format: {message}");
-                return;
-            }
-
-            string url = parts[0];
-            bool isDeferred = bool.Parse(parts[1].ToLower());
-
-            var deepLinkData = new DeepLinkData(url, isDeferred);
-
-            Debug.Log($"WiseTrack: Deep link received - URL: {url}, IsDeferred: {isDeferred}");
-
-            // Invoke the event for subscribers
-            OnDeepLink?.Invoke(deepLinkData);
+            DispatchDeepLink(new DeepLinkData(message.url, message.isDeferred));
         }
         catch (Exception e)
         {
-            Debug.LogError($"WiseTrack: Exception in deep link listener: {e.Message}");
+            Debug.LogError($"WiseTrack: Failed to parse deep link message: {e.Message}");
         }
     }
 }

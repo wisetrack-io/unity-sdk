@@ -12,6 +12,17 @@ public static class WiseTrackLogger
     private static readonly List<IWiseTrackLogger> _loggers = new List<IWiseTrackLogger>();
     private static bool _isInitialized = false;
 
+    /// <summary>
+    /// Raised when the first logger is registered, so native log forwarding is only enabled when
+    /// someone actually listens.
+    /// </summary>
+    internal static event Action FirstLoggerAdded;
+
+    internal static bool HasLoggers
+    {
+        get { return _loggers.Count > 0; }
+    }
+
     public static void Initialize()
     {
         if (_isInitialized) return;
@@ -20,9 +31,12 @@ public static class WiseTrackLogger
 
     public static void AddLogger(IWiseTrackLogger logger)
     {
-        if (!_loggers.Contains(logger))
+        if (logger == null || _loggers.Contains(logger)) return;
+
+        _loggers.Add(logger);
+        if (_loggers.Count == 1 && FirstLoggerAdded != null)
         {
-            _loggers.Add(logger);
+            FirstLoggerAdded();
         }
     }
 
@@ -35,7 +49,8 @@ public static class WiseTrackLogger
     {
         var logLevel = (WTLogLevel)level;
 
-        foreach (var logger in _loggers)
+        // Iterate over a snapshot: a logger may add or remove loggers from inside OnLog.
+        foreach (var logger in _loggers.ToArray())
         {
             try
             {

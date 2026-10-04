@@ -20,7 +20,9 @@ import io.wisetrack.sdk.core.models.WTScreenType
 import io.wisetrack.sdk.core.resources.WTLoggerOutput
 import io.wisetrack.sdk.core.screen.WTScreenAutoTrackingConfig
 
-
+/**
+ * Bridge between the Unity C# layer (AndroidPlatform.cs) and the WiseTrack Android SDK.
+ */
 object WiseTrackUnityPlugin {
 
     private const val TAG = "WiseTrackUnityPlugin"
@@ -35,20 +37,20 @@ object WiseTrackUnityPlugin {
             val appToken = json.getString("app_token")
             val clientSecret = json.getString("client_secret")
             val sdkVersion = json.getString("sdk_version")
-            val sdkEnv = json.getString("sdk_environment")
             val userEnv = json.getString("user_environment")
             val storeName = json.optString("android_store_name", "other")
             val trackingWaitingTime = json.optInt("tracking_waiting_time", 0)
             val startTrackerAutomatically = json.optBoolean("start_tracker_automatically", true)
-            val customDeviceId = if (json.has("custom_device_id")) json.getString("custom_device_id") else null
-            val defaultTracker = if (json.has("default_tracker")) json.getString("default_tracker") else null
+            val customDeviceId = json.optStringOrNull("custom_device_id")
+            val defaultTracker = json.optStringOrNull("default_tracker")
             val deeplinkEnabled = json.optBoolean("deeplink_enabled", true)
-            val logLevel = json.optInt("log_level", 3)
+            val logLevel = json.optInt("log_level", 5)
             val oaidEnabled = json.optBoolean("oaid_enabled", false)
 
-            val resourceWrapper = ResourceWrapper(getActivity())
+            val activity = getActivity()
+
+            val resourceWrapper = ResourceWrapper(activity)
             resourceWrapper.setFramework("unity")
-            resourceWrapper.setEnvironment(sdkEnv)
             resourceWrapper.setVersion(sdkVersion)
 
             val config = WTInitialConfig(
@@ -66,169 +68,187 @@ object WiseTrackUnityPlugin {
                 screenTrackingConfig = WTScreenAutoTrackingConfig(enabled = false),
             )
 
-            WiseTrack.initialize(getActivity(), config)
+            // Register the deeplink listener before initialize, so a deeplink dispatched during
+            // initialization is not lost.
+            WiseTrack.ensureInitialized(activity)
+            registerDeeplinkListener()
 
-            WiseTrack.setOnDeeplinkListener { intent, isDeferred ->
-                UnityDeepLinkReceiver.onDeeplinkReceived(intent, isDeferred)
-            }
-
+            WiseTrack.initialize(activity, config)
         } catch (e: Exception) {
-            Log.e("WiseTrackUnityPlugin", "Failed to parse config: $jsonConfig", e)
+            // Never log the config itself: it contains the client secret.
+            Log.e(TAG, "Failed to initialize WiseTrack: ${e.message}", e)
         }
     }
 
     @JvmStatic
     fun isWiseTrackNotificationPayload(jsonData: String): Boolean {
-        try {
-            val jsonObject = JSONObject(jsonData)
-            return WiseTrack.isWiseTrackNotificationPayload(jsonObject.toMap())
+        return try {
+            WiseTrack.isWiseTrackNotificationPayload(JSONObject(jsonData).toStringMap())
         } catch (e: Exception) {
-            return false
+            Log.e(TAG, "isWiseTrackNotificationPayload failed: ${e.message}")
+            false
         }
     }
 
     @JvmStatic
-    fun addLoggerOutput() {
+    fun addLoggerOutput() = guard("addLoggerOutput") {
         WiseTrack.addLoggerOutput(UnityLoggerOutput)
     }
 
     @JvmStatic
-    fun ensureInitialized() {
+    fun ensureInitialized() = guard("ensureInitialized") {
         WiseTrack.ensureInitialized(getActivity())
+        registerDeeplinkListener()
     }
 
     @JvmStatic
-    fun setLogLevel(level: Int) {
+    fun setLogLevel(level: Int) = guard("setLogLevel") {
         WiseTrack.setLogLevel(WTLogLevel.fromPriority(level))
     }
 
     @JvmStatic
-    fun clearDataAndStop() {
+    fun clearDataAndStop() = guard("clearDataAndStop") {
         WiseTrack.clearDataAndStop()
     }
 
     @JvmStatic
-    fun setEnabled(enabled: Boolean) {
+    fun setEnabled(enabled: Boolean) = guard("setEnabled") {
         WiseTrack.setEnabled(enabled)
     }
 
     @JvmStatic
     fun isEnabled(): Boolean {
-        return WiseTrack.isEnabled
+        return try {
+            WiseTrack.isEnabled
+        } catch (e: Exception) {
+            Log.e(TAG, "isEnabled failed: ${e.message}")
+            false
+        }
     }
 
     @JvmStatic
-    fun startTracking() {
+    fun startTracking() = guard("startTracking") {
         WiseTrack.startTracking()
     }
 
     @JvmStatic
-    fun stopTracking() {
+    fun stopTracking() = guard("stopTracking") {
         WiseTrack.stopTracking()
     }
 
     @JvmStatic
-    fun setFCMToken(token: String?) {
+    fun setFCMToken(token: String?) = guard("setFCMToken") {
         if (!token.isNullOrEmpty()) {
             WiseTrack.setFCMToken(token)
         }
     }
 
     @JvmStatic
-    fun trackEvent(json: String) {
+    fun trackEvent(json: String) = guard("trackEvent") {
         val jsonObject = JSONObject(json)
         val name = jsonObject.getString("name")
         val type = jsonObject.getString("type")
-        val revenue = jsonObject.optDouble("revenue", 0.0)
-        val currency = jsonObject.optString("currency", "USD")
-
-        val paramsJson = jsonObject.optJSONObject("params")
-        val paramsMap = mutableMapOf<String, WTParam>()
-
-        if (paramsJson != null) {
-            for (key in paramsJson.keys()) {
-                paramsMap[key] = when (val value = paramsJson.get(key)) {
-                    is Int -> WTParam(value.toDouble())
-                    is Double -> WTParam(value)
-                    is Boolean -> WTParam(value)
-                    else -> WTParam(value.toString())
-                }
-            }
-        }
+        val params = parseParams(jsonObject.optJSONObject("params"))
 
         val event = if (type.uppercase() == WTEventType.REVENUE.name) {
+            val currency = jsonObject.optString("currency", "USD")
             WTEvent.revenueEvent(
                 name,
-                amount = revenue,
+                amount = jsonObject.optDouble("revenue", 0.0),
                 currency = RevenueCurrency.valueOf(currency.uppercase()),
-                params = paramsMap
+                params = params
             )
         } else {
-            WTEvent.defaultEvent(name, params = paramsMap)
+            WTEvent.defaultEvent(name, params = params)
         }
 
         WiseTrack.trackEvent(event)
     }
 
     @JvmStatic
-    fun trackScreen(json: String) {
+    fun trackScreen(json: String) = guard("trackScreen") {
         val jsonObject = JSONObject(json)
-        val name = jsonObject.getString("name")
-        val displayName = jsonObject.optString("display_name")
-        val trigger = jsonObject.optString("trigger")
 
-        var screenType: WTScreenType
-        try {
-            screenType = WTScreenType.valueOf(jsonObject.getString("type").uppercase())
-        } catch (e: Throwable) {
-            screenType = WTScreenType.OTHER
-        }
-
-        val paramsJson = jsonObject.optJSONObject("params")
-        val paramsMap = mutableMapOf<String, WTParam>()
-
-        if (paramsJson != null) {
-            for (key in paramsJson.keys()) {
-                paramsMap[key] = when (val value = paramsJson.get(key)) {
-                    is Int -> WTParam(value.toDouble())
-                    is Double -> WTParam(value)
-                    is Boolean -> WTParam(value)
-                    else -> WTParam(value.toString())
-                }
-            }
-        }
         val screen = WTScreen(
-            name = name,
-            displayName = displayName,
-            type = screenType,
-            params = paramsMap,
-            trigger = trigger,
+            name = jsonObject.getString("name"),
+            displayName = jsonObject.optStringOrNull("display_name"),
+            type = parseScreenType(jsonObject.optStringOrNull("type")),
+            params = parseParams(jsonObject.optJSONObject("params")),
+            trigger = jsonObject.optStringOrNull("trigger"),
         )
-        screen.isAuto = jsonObject.optBoolean("is_auto") == true
+        screen.isAuto = jsonObject.optBoolean("is_auto", false)
 
         WiseTrack.trackScreen(screen)
     }
 
     @JvmStatic
-    fun getAdId(): String? = WiseTrack.getADID()
+    fun getAdId(): String? = guardValue("getAdId") { WiseTrack.getADID() }
 
     @JvmStatic
-    fun getReferrer(): String? = WiseTrack.getReferrer()
+    fun getReferrer(): String? = guardValue("getReferrer") { WiseTrack.getReferrer() }
 
     @JvmStatic
-    fun getLastDeeplink(): String? = WiseTrack.getLastDeeplink()
+    fun getLastDeeplink(): String? = guardValue("getLastDeeplink") { WiseTrack.getLastDeeplink() }
 
     @JvmStatic
-    fun getDeferredDeeplink(): String? = WiseTrack.getDeferredDeeplink()
+    fun getDeferredDeeplink(): String? = guardValue("getDeferredDeeplink") { WiseTrack.getDeferredDeeplink() }
+
+    private fun registerDeeplinkListener() {
+        WiseTrack.setOnDeeplinkListener { intent, isDeferred ->
+            UnityDeepLinkReceiver.onDeeplinkReceived(intent, isDeferred)
+        }
+    }
+
+    /** Maps the identifier sent by C# (WTScreen.ToWireName) to the native enum, via its `sName`. */
+    private fun parseScreenType(value: String?): WTScreenType {
+        if (value.isNullOrEmpty()) return WTScreenType.OTHER
+        return WTScreenType.values().firstOrNull {
+            it.sName.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true)
+        } ?: WTScreenType.OTHER
+    }
+
+    private fun parseParams(paramsJson: JSONObject?): Map<String, WTParam> {
+        val paramsMap = mutableMapOf<String, WTParam>()
+        if (paramsJson == null) return paramsMap
+
+        for (key in paramsJson.keys()) {
+            if (paramsJson.isNull(key)) continue
+            paramsMap[key] = when (val value = paramsJson.get(key)) {
+                is Boolean -> WTParam(value)
+                is Number -> WTParam(value.toDouble())
+                else -> WTParam(value.toString())
+            }
+        }
+        return paramsMap
+    }
+
+    private inline fun guard(method: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (e: Exception) {
+            Log.e(TAG, "$method failed: ${e.message}", e)
+        }
+    }
+
+    private inline fun <T> guardValue(method: String, block: () -> T?): T? {
+        return try {
+            block()
+        } catch (e: Exception) {
+            Log.e(TAG, "$method failed: ${e.message}", e)
+            null
+        }
+    }
 }
 
-private fun JSONObject.toMap(): Map<String, String> {
+private fun JSONObject.optStringOrNull(key: String): String? =
+    if (has(key) && !isNull(key)) getString(key) else null
+
+private fun JSONObject.toStringMap(): Map<String, String> {
     val map = mutableMapOf<String, String>()
     val keys = this.keys()
     while (keys.hasNext()) {
         val key = keys.next()
-        val value = this.get(key)
-        map[key] = value.toString()
+        map[key] = this.get(key).toString()
     }
     return map
 }
@@ -236,16 +256,17 @@ private fun JSONObject.toMap(): Map<String, String> {
 internal object UnityLoggerOutput : WTLoggerOutput {
     private const val UNITY_GAME_OBJECT = "WiseTrackManager"
     private const val UNITY_CALLBACK_METHOD = "OnLogReceived"
+
     override fun log(level: WTLogLevel, tag: String, message: String, throwable: Throwable?) {
         try {
-            val stackTrace = throwable?.stackTraceToString()
+            val payload = JSONObject()
+                .put("level", level.priority)
+                .put("tag", tag)
+                .put("message", message)
+            throwable?.let { payload.put("stackTrace", it.stackTraceToString()) }
 
-            // Send to Unity main thread
-            UnityPlayer.UnitySendMessage(
-                UNITY_GAME_OBJECT,
-                UNITY_CALLBACK_METHOD,
-                "${level.priority}|$tag|$message|${stackTrace ?: ""}"
-            )
+            // Delivered on the Unity main thread
+            UnityPlayer.UnitySendMessage(UNITY_GAME_OBJECT, UNITY_CALLBACK_METHOD, payload.toString())
         } catch (e: Exception) {
             Log.e("WiseTrackUnity", "Failed to send log to Unity: ${e.message}")
         }
@@ -259,15 +280,12 @@ internal object UnityDeepLinkReceiver {
     fun onDeeplinkReceived(intent: Intent, isDeferred: Boolean) {
         try {
             val url = intent.dataString ?: return
-            // Format: "url|isDeferred" - Unity will parse this
-            val message = "$url|$isDeferred"
+            val payload = JSONObject()
+                .put("url", url)
+                .put("isDeferred", isDeferred)
 
-            // Send to Unity main thread
-            UnityPlayer.UnitySendMessage(
-                UNITY_GAME_OBJECT,
-                UNITY_CALLBACK_METHOD,
-                message
-            )
+            // Delivered on the Unity main thread
+            UnityPlayer.UnitySendMessage(UNITY_GAME_OBJECT, UNITY_CALLBACK_METHOD, payload.toString())
         } catch (e: Exception) {
             Log.e("WiseTrackUnity", "Failed to send deeplink to Unity: ${e.message}")
         }

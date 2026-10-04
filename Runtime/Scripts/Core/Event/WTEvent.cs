@@ -21,7 +21,6 @@ public enum WTEventType
 /// Represents an analytics event in the WiseTrack system.
 /// Supports both standard events and revenue events with associated parameters.
 /// </summary>
-[Serializable]
 public class WTEvent
 {
     /// <summary>
@@ -38,7 +37,7 @@ public class WTEvent
 
     /// <summary>
     /// Gets the dictionary of parameters associated with this event.
-    /// Parameter keys and string values have a maximum length of 50 characters.
+    /// Parameter keys must be 1-50 characters and string values at most 100 characters.
     /// </summary>
     /// <value>A dictionary containing event parameters, or null if no parameters are set.</value>
     public Dictionary<string, WTParamValue> Params { get; }
@@ -59,8 +58,8 @@ public class WTEvent
     /// Initializes a new instance of the WTEvent class.
     /// </summary>
     /// <param name="type">The type of event to create.</param>
-    /// <param name="name">The name of the event.</param>
-    /// <param name="parameters">Optional dictionary of event parameters. Keys and string values must be 50 characters or less.</param>
+    /// <param name="name">The name of the event (1-50 characters).</param>
+    /// <param name="parameters">Optional dictionary of event parameters. Keys must be 1-50 characters and string values at most 100 characters.</param>
     /// <param name="revenueAmount">The revenue amount for revenue events.</param>
     /// <param name="revenueCurrency">The currency for revenue events.</param>
     /// <exception cref="ArgumentException">Thrown when creating a revenue event without both amount and currency.</exception>
@@ -87,8 +86,8 @@ public class WTEvent
     /// <summary>
     /// Creates a new default event with the specified name and optional parameters.
     /// </summary>
-    /// <param name="name">The name of the event.</param>
-    /// <param name="parameters">Optional dictionary of event parameters. Keys and string values must be 50 characters or less.</param>
+    /// <param name="name">The name of the event (1-50 characters).</param>
+    /// <param name="parameters">Optional dictionary of event parameters. Keys must be 1-50 characters and string values at most 100 characters.</param>
     /// <returns>A new WTEvent of type Default.</returns>
     public static WTEvent DefaultEvent(string name, Dictionary<string, WTParamValue> parameters = null)
     {
@@ -101,7 +100,7 @@ public class WTEvent
     /// <param name="name">The name of the revenue event.</param>
     /// <param name="currency">The currency type for the revenue.</param>
     /// <param name="amount">The revenue amount.</param>
-    /// <param name="parameters">Optional dictionary of event parameters. Keys and string values must be 50 characters or less.</param>
+    /// <param name="parameters">Optional dictionary of event parameters. Keys must be 1-50 characters and string values at most 100 characters.</param>
     /// <returns>A new WTEvent of type Revenue.</returns>
     public static WTEvent RevenueEvent(string name, WTRevenueCurrency currency, double amount, Dictionary<string, WTParamValue> parameters = null)
     {
@@ -116,7 +115,7 @@ public class WTEvent
     {
         var map = new Dictionary<string, object>
         {
-            { "type", Type.ToString().ToLower() },
+            { "type", Type.ToString().ToLowerInvariant() },
             { "name", Name }
         };
 
@@ -125,7 +124,7 @@ public class WTEvent
             var paramMap = new Dictionary<string, object>();
             foreach (var kvp in Params)
             {
-                paramMap[kvp.Key] = kvp.Value.Value;
+                paramMap[kvp.Key] = kvp.Value != null ? kvp.Value.Value : null;
             }
             map["params"] = paramMap;
         }

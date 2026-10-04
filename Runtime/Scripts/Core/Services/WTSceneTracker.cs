@@ -5,6 +5,7 @@ internal class WTSceneTracker : MonoBehaviour
 {
     private static WTSceneTracker _instance;
     private string _lastTrackedScene;
+    private bool _initialized;
 
     public static WTSceneTracker Instance
     {
@@ -22,6 +23,9 @@ internal class WTSceneTracker : MonoBehaviour
 
     public void Init()
     {
+        if (_initialized) return;
+        _initialized = true;
+
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         // Track initial scene
@@ -33,6 +37,7 @@ internal class WTSceneTracker : MonoBehaviour
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (_instance == this) _instance = null;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -40,13 +45,6 @@ internal class WTSceneTracker : MonoBehaviour
         if (mode == LoadSceneMode.Single)
             TrackScene(scene.name, "scene_load");
     }
-
-    //  string name,
-    // WTScreenType type = WTScreenType.Other,
-    // string displayName = null,
-    // Dictionary<string, WTParamValue> parameters = null,
-    // bool isAuto = false,
-    // string trigger = null)
 
     private void TrackScene(string sceneName, string trigger)
     {

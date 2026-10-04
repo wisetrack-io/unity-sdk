@@ -6,6 +6,10 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
 
 - [Requirements](#requirements)
 - [Installation](#installation)
+  - [1. Install External Dependency Manager (EDM4U)](#1-install-external-dependency-manager-edm4u)
+  - [2. Add the WiseTrack Package](#2-add-the-wisetrack-package)
+  - [3. Configure Android](#3-configure-android)
+  - [4. Build](#4-build)
 - [Initialization](#initialization)
 - [Basic Usage](#basic-usage)
   - [Enabling/Disabling Tracking](#enablingdisabling-tracking)
@@ -14,6 +18,7 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
   - [Logging Custom Events](#logging-custom-events)
   - [Screen Tracking](#screen-tracking)
   - [Setting Log Levels](#setting-log-levels)
+  - [Receiving SDK Logs](#receiving-sdk-logs)
   - [Retrieving Advertising IDs](#retrieving-advertising-ids)
 - [Deep Linking](#deep-linking)
   - [Enable Deep Linking](#enable-deep-linking)
@@ -22,130 +27,149 @@ The **WiseTrack** Unity package provides a solution to accelerate your game or a
 - [Advanced Usage](#advanced-usage)
   - [Customizing SDK Behavior](#customizing-sdk-behavior)
 - [Example Project](#example-project)
+- [Running the Tests](#running-the-tests)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
 ## Requirements
 
 - Unity 2019.4 or later
-- Kotlin version 1.9.0 or later
 - Android API 21 (Lollipop) or later
-- External Dependency Manager for Unity (EDM4U) installed
+- Kotlin 1.9.0 or later in the Gradle build (the Unity bridge ships as a Kotlin source file)
+- [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver) 1.2.177 or later
+- Platforms: **Android**. On iOS and in the Editor every call is a no-op (iOS support is not available yet).
 
 ## Installation
 
-To integrate the WiseTrack Unity Package into your Unity project, follow these steps:
+### 1. Install External Dependency Manager (EDM4U)
 
-1. **Install External Dependency Manager for Unity (EDM4U)**:
-   The WiseTrack Unity Package requires EDM4U to manage Android and iOS dependencies. Follow the installation instructions provided in the [EDM4U GitHub repository](https://github.com/googlesamples/unity-jar-resolver).
+The WiseTrack package uses EDM4U to download the WiseTrack Android SDK (`io.wisetrack.sdk:core`) from Maven Central into your Gradle build. EDM4U is **not** installed automatically, because it is not available in the Unity Registry and many projects already have it (Firebase, ad networks, ...). If it is already in your project, skip this step.
 
-2. **Add the WiseTrack Package**:
-   You can add the package via Unity Package Manager (UPM) or directly from a Git URL.
+When EDM4U is missing and the build target is Android, WiseTrack logs a warning in the Console once per Editor session.
 
-   ### Option 1: Via Unity Package Manager (UPM)
+Pick **one** of the following:
 
-   - Open Unity and navigate to `Window > Package Manager`.
-   - Click the `+` button in the top-left corner and select `Add package from git URL`.
-   - Enter the following URL (replace with the actual GitHub URL for your package):
-     ```
-     https://github.com/wisetrack-io/unity-sdk.git
-     ```
-   - Click `Add`. Unity will download and install the package.
-   - If prompted, resolve dependencies using EDM4U by navigating to `Assets > External Dependency Manager > Android Resolver > Force Resolve`.
+**Option A: OpenUPM (recommended).** Add the scoped registry and the dependency to `Packages/manifest.json`:
 
-   ### Option 2: Via GitHub (Manual Import)
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": ["com.google.external-dependency-manager"]
+    }
+  ],
+  "dependencies": {
+    "com.google.external-dependency-manager": "1.2.190"
+  }
+}
+```
 
-   - Clone or download the WiseTrack Unity package repository from [GitHub](https://github.com/wisetrack-io/unity-sdk).
-   - Extract the contents to your project’s `Assets/Plugins/WiseTrack` folder.
-   - Open Unity, and EDM4U will automatically detect and resolve dependencies. If not, manually trigger resolution via `Assets > External Dependency Manager > Android Resolver > Resolve`.
-   - Ensure all required dependencies are included in your project (see [Feature-Specific Dependencies](#feature-specific-dependencies-android)).
+**Option B: Git URL.** In `Window > Package Manager`, click `+ > Add package from git URL` and enter:
 
-   ### Option 3: Via `.unitypackage` (Manual Import)
+```
+https://github.com/googlesamples/unity-jar-resolver.git?path=upm
+```
 
-   - Go to the [Releases](https://github.com/wisetrack-io/unity-sdk/releases) section of the repository.
-   - Download the latest `.unitypackage` file.
-   - In Unity, navigate to `Assets > Import Package > Custom Package…`.
-   - Select the downloaded `.unitypackage` and click `Import`.
-   - Once imported, make sure EDM4U is installed in your project.
-   - Trigger dependency resolution via `Assets > External Dependency Manager > Android Resolver > Resolve` if needed.
+**Option C: `.unitypackage`.** Download `external-dependency-manager-*.unitypackage` from the [EDM4U releases](https://github.com/googlesamples/unity-jar-resolver/releases) and import it via `Assets > Import Package > Custom Package…`.
 
-3. **Configure Android**:
-   Ensure your `minSdkVersion` is set to 21 or later
+> Use only one installation method. Having EDM4U both in `Assets/ExternalDependencyManager` and in `Packages/` causes duplicate-class errors.
 
-   If your app targets non-Google Play stores (e.g., CafeBazaar, Myket), add these permissions to `Assets/Plugins/Android/AndroidManifest.xml`:
+### 2. Add the WiseTrack Package
 
-   ```xml
-   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-   <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-   ```
+**Option 1: Unity Package Manager (Git URL)**
 
-   Note: to enable `AndroidManifest.xml` ensure `Custom Main Manifest` is checked in Project Settings.
+- Open `Window > Package Manager`.
+- Click `+ > Add package from git URL` and enter:
+  ```
+  https://github.com/wisetrack-io/unity-sdk.git
+  ```
+  To pin a version, append the tag, e.g. `https://github.com/wisetrack-io/unity-sdk.git#v2.3.0`.
 
-   ### Feature-Specific Dependencies (Android)
+**Option 2: `.unitypackage`**
 
-   The WiseTrack Unity Package supports additional Android features that require specific dependencies. Add only the dependencies for the features you need in `Assets/Plugins/Android/mainTemplate.gradle` under the `dependencies` block. If you encounter issues with `appset` or `ads-identifier` dependencies, consider using the [WiseTrackIdentifier Unity Package](https://github.com/wisetrack-io/unity-identifier) as an alternative.
+- Download the latest `.unitypackage` from the [Releases](https://github.com/wisetrack-io/unity-sdk/releases) page.
+- Import it via `Assets > Import Package > Custom Package…`.
 
-   - **Google Advertising ID (Ad ID)**: Enables retrieval of the Google Advertising ID via `GetAdId()`.
+After installing, resolve the Android dependencies: `Assets > External Dependency Manager > Android Resolver > Force Resolve`.
 
-     ```gradle
-     implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
-     ```
+### 3. Configure Android
 
-   - **AppSet ID**: Provides additional device identification for analytics.
+- Set `Minimum API Level` to 21 or later (`Project Settings > Player > Android > Other Settings`).
+- The Android SDK declares the `INTERNET`, `ACCESS_NETWORK_STATE` and `com.google.android.gms.permission.AD_ID` permissions in its own manifest; you do not need to add them.
+- If your app targets non-Google Play stores (e.g., CafeBazaar, Myket), add these permissions to `Assets/Plugins/Android/AndroidManifest.xml` (enable `Custom Main Manifest` in `Project Settings > Player > Android > Publishing Settings`):
 
-     ```gradle
-     implementation 'com.google.android.gms:play-services-appset:16.1.0'
-     ```
+  ```xml
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  ```
 
-   - **Open Advertising ID (OAID)**: Enables OAID for devices without Google Play Services (e.g., Chinese devices) via `WTInitialConfig` with `oaidEnabled: true`.
+- If your app must not use the advertising ID (for example apps for children), remove the permission in your main manifest:
 
-     ```gradle
-     implementation 'io.wisetrack:sdk:oaid:2.0.0' // Replace with the latest version
-     ```
+  ```xml
+  <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+  ```
 
-   - **Huawei Ads Identifier**: Enables Ad ID retrieval on Huawei devices.
+#### Feature-Specific Dependencies (Android)
 
-     ```gradle
-     repositories {
-         maven { url 'https://developer.huawei.com/repo/' }
-     }
-     dependencies {
-         implementation 'com.huawei.hms:ads-identifier:3.4.62.300'
-     }
-     ```
+The WiseTrack Android SDK detects the following optional libraries at runtime. Add only the ones for the features you need, in `Assets/Plugins/Android/mainTemplate.gradle` (enable `Custom Main Gradle Template` in `Publishing Settings`) under the `dependencies` block. If you encounter issues with `appset` or `ads-identifier` dependencies, consider using the [WiseTrackIdentifier Unity Package](https://github.com/wisetrack-io/unity-identifier) as an alternative.
 
-   - **Referrer Tracking**: Enables referrer tracking for Google Play and CafeBazaar via `WTInitialConfig` with `referrerEnabled: true`.
+- **Google Advertising ID (Ad ID)**: Enables retrieval of the Google Advertising ID via `GetAdId()`.
 
-     ```gradle
-     implementation 'io.wisetrack:sdk:referrer:2.0.0' // Replace with the latest version
-     implementation 'com.android.installreferrer:installreferrer:2.2' // Google Play referrer
-     implementation 'com.github.cafebazaar:referrersdk:1.0.2' // CafeBazaar referrer
-     ```
+  ```gradle
+  implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
+  ```
 
-   - **Firebase Installation ID (FID)**: Enables retrieval of a unique Firebase Installation ID.
-     ```gradle
-     implementation 'com.google.firebase:firebase-installations:17.2.0'
-     ```
-     To use Firebase, register your app in the Firebase Console:
-     - Add your package name (e.g., `com.example.app`).
-     - Download the `google-services.json` file and place it in `Assets/Plugins/Android/`.
-     - Update `Assets/Plugins/Android/mainTemplate.gradle`:
-       ```gradle
-       buildscript {
-           dependencies {
-               classpath 'com.google.gms:google-services:4.4.1' // Or latest version
-           }
-       }
-       ```
-     - Apply the Google Services plugin:
-       ```gradle
-       apply plugin: 'com.google.gms.google-services'
-       ```
+- **AppSet ID**: Provides additional device identification for analytics.
 
-4. **Rebuild the Project**:
-   Build your project to ensure all dependencies are correctly integrated:
-   - In Unity, go to `File > Build Settings` and select your target platform.
-   - Click `Build` or `Build and Run`.
+  ```gradle
+  implementation 'com.google.android.gms:play-services-appset:16.1.0'
+  ```
+
+- **Open Advertising ID (OAID)**: Enables OAID for devices without Google Play Services (e.g., Chinese devices). Also set `OaidEnabled = true` in `WTInitialConfig`.
+
+  ```gradle
+  implementation 'io.wisetrack.sdk:oaid:2.0.0' // Replace with the latest version
+  ```
+
+- **Huawei Ads Identifier**: Enables Ad ID retrieval on Huawei devices. Add the Huawei repository to `settingsTemplate.gradle` (`dependencyResolutionManagement > repositories`):
+
+  ```gradle
+  maven { url 'https://developer.huawei.com/repo/' }
+  ```
+
+  ```gradle
+  implementation 'com.huawei.hms:ads-identifier:3.4.62.300'
+  ```
+
+- **Referrer Tracking**: Enables install referrer tracking for Google Play and CafeBazaar. It is used automatically when the libraries are present.
+
+  ```gradle
+  implementation 'io.wisetrack.sdk:referrer:2.0.0' // Replace with the latest version
+  implementation 'com.android.installreferrer:installreferrer:2.2' // Google Play referrer
+  implementation 'com.github.cafebazaar:referrersdk:1.0.2' // CafeBazaar referrer (needs JitPack)
+  ```
+
+  The CafeBazaar referrer is hosted on JitPack; add it to `settingsTemplate.gradle`:
+
+  ```gradle
+  maven { url 'https://jitpack.io' }
+  ```
+
+- **Firebase Installation ID (FID)**: Enables retrieval of a unique Firebase Installation ID.
+
+  ```gradle
+  implementation 'com.google.firebase:firebase-installations:17.2.0'
+  ```
+
+  To use Firebase, register your app in the Firebase Console:
+  - Add your package name (e.g., `com.example.app`).
+  - Download the `google-services.json` file and place it in `Assets/` (the Firebase Unity SDK processes it), or follow the [Firebase Unity setup guide](https://firebase.google.com/docs/unity/setup).
+
+### 4. Build
+
+Build your project to make sure all dependencies are integrated: `File > Build Settings`, select Android, then `Build` or `Build and Run`.
 
 ## Initialization
 
@@ -165,8 +189,7 @@ public class GameInitializer : MonoBehaviour
             AppToken = "your-app-token",
             ClientSecret = "your-client-secret",
             UserEnvironment = WTUserEnvironment.Production, // Use Sandbox for testing
-            AndroidStore = WTAndroidStore.GooglePlay,
-            iOSStore = WTIOSStore.AppStore,
+            AndroidStore = WTAndroidStore.PlayStore,
             LogLevel = WTLogLevel.Warning
         };
 
@@ -175,7 +198,9 @@ public class GameInitializer : MonoBehaviour
 }
 ```
 
-**Note**: Replace `"your-app-token"` and `"your-client-secret"` with the credentials provided by the WiseTrack dashboard.
+**Notes**:
+- Replace `"your-app-token"` and `"your-client-secret"` with the credentials provided by the WiseTrack dashboard. Both are required: if either is missing, `Initialize()` logs an error and the SDK is not started.
+- Call the WiseTrack API from the Unity main thread (for example, use `ContinueWithOnMainThread` in Firebase callbacks).
 
 ## Basic Usage
 
@@ -277,7 +302,9 @@ WiseTrack.TrackEvent(Event);
 WTEvent Event = WTEvent.RevenueEvent("revenue-event", WTRevenueCurrency.IRR, 120000, Params);
 WiseTrack.TrackEvent(Event);
 ```
-**Note:** Event parameter keys and values have a maximum limit of 50 characters.
+**Limits:** event name 1-50 characters, parameter keys 1-50 characters, string parameter values up to 100 characters. Invalid events are rejected by the SDK; a warning is also printed in the Unity Console.
+
+Numbers are always sent with an invariant format (`.` as decimal separator), so revenue amounts are tracked correctly on every device language.
 
 ### Screen Tracking
 
@@ -291,6 +318,7 @@ Enabled by default. WiseTrack automatically tracks every Unity scene load (Singl
 var config = new WTInitialConfig
 {
     AppToken = "your-app-token",
+    ClientSecret = "your-client-secret",
     AutoTrackScenes = false
 };
 WiseTrack.Initialize(config);
@@ -298,7 +326,7 @@ WiseTrack.Initialize(config);
 
 #### Manual Tracking
 
-For UI panels, menus, dialogs, and state machine navigation:
+For UI panels, menus, dialogs, bottom sheets and state machine navigation. Available types: `Page`, `Dialog`, `BottomSheet`, `Other` (default).
 
 ```csharp
 // Simple
@@ -315,14 +343,31 @@ WiseTrack.TrackScreen(new WTScreen(
 ));
 ```
 
-**Note:** Screen name has a maximum limit of 50 characters.
+**Limits:** screen name 1-150 characters, parameter keys 1-50 characters, string parameter values up to 100 characters.
 
 ### Setting Log Levels
 
 Control the verbosity of SDK logs:
 
 ```csharp
-WiseTrack.SetLogLevel(WTLogLevel.Debug); // Options: None, Error, Warning, Info, Debug
+WiseTrack.SetLogLevel(WTLogLevel.Debug); // Options: Debug, Info, Warning, Error
+```
+
+The default level is `Warning`. Use `Debug` only while integrating.
+
+### Receiving SDK Logs
+
+Native SDK logs are forwarded to Unity only when at least one logger is registered:
+
+```csharp
+// Print SDK logs in the Unity Console
+WiseTrackLogger.AddLogger(new UnityConsoleLogger());
+
+// Or implement IWiseTrackLogger to route them to your own logging system
+public class MyLogger : IWiseTrackLogger
+{
+    public void OnLog(WTLogLevel level, string tag, string message, string stackTrace = null) { /* ... */ }
+}
 ```
 
 ### Retrieving Advertising IDs
@@ -357,7 +402,10 @@ WiseTrack.Initialize(config);
 
 ### Listening for Deep Links
 
-You can register a callback to be notified when deep links are received:
+You can register a callback to be notified when deep links are received. Callbacks run on the Unity main thread.
+
+- A deep link that arrives before anyone has subscribed (for example while your first scene is still loading) is kept and delivered to the first subscriber.
+- `SetDeeplinkListener` keeps a single callback: calling it again replaces the previous one, and `null` removes it. Handlers added with `OnDeepLinkReceived +=` are independent of it.
 
 ```csharp
 using UnityEngine;
@@ -444,7 +492,7 @@ Customize the SDK behavior through the `WTInitialConfig` parameters:
 - `CustomDeviceId`: A custom device identifier.
 - `DefaultTracker`: A default tracker for event attribution.
 - `DeeplinkEnabled`: Enable or disable deep linking support (default: `true`).
-- `LogLevel`: Set the initial log level.
+- `LogLevel`: Set the initial log level (default: `Warning`).
 - `OaidEnabled`: Indicates whether the Open Advertising ID (OAID) is enabled.
 - `AutoTrackScenes`: Automatically track Unity scene loads (default: `true`).
 
@@ -471,12 +519,27 @@ WiseTrack.Initialize(config);
 
 ## Example Project
 
-A Sample project demonstrating the WiseTrack Unity Package integration is available at [Samples~ Folder](https://github.com/wisetrack-io/unity-sdk/tree/main/Samples~).
+The package includes a sample (`Window > Package Manager > WiseTrack Unity SDK > Samples > Basic Sample > Import`) with two scenes that demonstrate initialization, events, screen tracking (manual and automatic scene tracking), deep links and logging. Source: [Samples~](https://github.com/wisetrack-io/unity-sdk/tree/main/Samples~).
+
+- The sample uses TextMesh Pro; import the TMP Essential Resources when Unity asks.
+- Add `SampleScene` and `SecondScene` to `File > Build Settings` (in this order).
+- Firebase Cloud Messaging code is disabled by default, so the sample compiles without Firebase. To enable it, install the Firebase Messaging SDK and add `WISETRACK_FIREBASE` to `Project Settings > Player > Other Settings > Scripting Define Symbols`.
+
+## Running the Tests
+
+The package contains EditMode tests (JSON serialization, models, validation). To run them in your project, add the package to `testables` in `Packages/manifest.json` and open `Window > General > Test Runner`:
+
+```json
+{
+  "testables": ["io.wisetrack.sdk.unity"]
+}
+```
 
 ## Troubleshooting
 
-- **SDK not initializing**: Ensure the `AppToken` is correct and the network is reachable.
-- **Logs not appearing**: Set the log level to `WTLogLevel.Debug` and check Console Logs.
+- **SDK not initializing**: Ensure `AppToken` and `ClientSecret` are set and correct and the network is reachable. Check the Unity Console for `WiseTrack:` errors.
+- **`External Dependency Manager for Unity (EDM4U) was not found` warning**: Install EDM4U, see [step 1](#1-install-external-dependency-manager-edm4u).
+- **Logs not appearing**: Register a logger (`WiseTrackLogger.AddLogger(new UnityConsoleLogger())`) and set the log level to `WTLogLevel.Debug`.
 - **Ad ID not available**: Ensure Google Play Services is included and the `play-services-ads-identifier` dependency is added (Android).
 - **Dependency conflicts**: Use EDM4U to resolve conflicts (`Assets > External Dependency Manager > Android Resolver > Resolve`). If issues persist with `appset` or `ads-identifier`, try the [WiseTrackIdentifier Unity Package](https://github.com/wisetrack-io/unity-identifier).
 

@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
+#if WISETRACK_FIREBASE
 using Firebase.Extensions;
 using Firebase.Messaging;
+#endif
 
+// Firebase Cloud Messaging (uninstall detection) is optional in this sample.
+// To enable it, import the Firebase Messaging SDK and add WISETRACK_FIREBASE to
+// Project Settings > Player > Other Settings > Scripting Define Symbols.
 public class FormController : MonoBehaviour, IWiseTrackLogger
 {
     [Header("UI Elements")]
@@ -32,13 +38,15 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
     private bool sdkEnabled = true;
     private bool sdkInitialized = false;
     private bool sdkRunning = false;
+#if WISETRACK_FIREBASE
     private Firebase.FirebaseApp app;
     private bool firebaseInitialized = false;
+#endif
 
     void Start()
     {
-        appTokenInput.text = "<AppToken>";
-        clientSecretInput.text = "<ClientSecret>";
+        appTokenInput.text = "{App-Token}";
+        clientSecretInput.text = "{Client-Secret}";
         eventNameInput.text = "testEvent";
         logLevelField.onValueChanged.AddListener(OnLogLevelChanged);
         startSdkBtn.onClick.AddListener(OnStartSdkClicked);
@@ -46,18 +54,21 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         getInfoBtn.onClick.AddListener(OnGetInfoClicked);
         clearDataBtn.onClick.AddListener(OnClearDataClicked);
         createEventBtn.onClick.AddListener(OnCreateEventClicked);
-        trackScreenBtn?.onClick.AddListener(OnTrackScreenClicked);
-        trackScreenNoParamsBtn?.onClick.AddListener(OnTrackScreenNoParamsClicked);
-        goToSecondSceneBtn?.onClick.AddListener(OnGoToSecondSceneClicked);
+        if (trackScreenBtn != null) trackScreenBtn.onClick.AddListener(OnTrackScreenClicked);
+        if (trackScreenNoParamsBtn != null) trackScreenNoParamsBtn.onClick.AddListener(OnTrackScreenNoParamsClicked);
+        if (goToSecondSceneBtn != null) goToSecondSceneBtn.onClick.AddListener(OnGoToSecondSceneClicked);
 
-        WTResources.DefaultSdkEnv = WTSDKEnvironment.Debug;
         WiseTrackLogger.AddLogger(this);
 
         // Subscribe to deep link events
         WiseTrack.OnDeepLinkReceived += OnDeepLinkReceived;
 
+#if WISETRACK_FIREBASE
         // Initialize Firebase
         SetupFirebase();
+#else
+        AddInfoLog("Firebase is disabled in this sample (add the WISETRACK_FIREBASE define to enable it).");
+#endif
     }
 
     void OnDeepLinkReceived(DeepLinkData data)
@@ -69,6 +80,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         // Example: ParseDeepLinkAndNavigate(data.Url);
     }
 
+#if WISETRACK_FIREBASE
     void SetupFirebase()
     {
         Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
@@ -157,6 +169,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             AddInfoLog($"  Body: {e.Message.Notification.Body}");
         }
     }
+#endif
 
     void OnStartSdkClicked()
     {
@@ -248,6 +261,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
 
     void OnPushTokenClicked()
     {
+#if WISETRACK_FIREBASE
         if (firebaseInitialized)
         {
             // Get the current FCM token
@@ -257,8 +271,12 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         {
             AddErrorLog("Firebase not initialized yet");
         }
+#else
+        AddErrorLog("Firebase is disabled (add the WISETRACK_FIREBASE define to enable it)");
+#endif
     }
 
+#if WISETRACK_FIREBASE
     void GetFcmToken()
     {
         FirebaseMessaging.GetTokenAsync().ContinueWithOnMainThread(task =>
@@ -275,6 +293,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             }
         });
     }
+#endif
 
     void OnCreateEventClicked()
     {
@@ -287,37 +306,28 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         string[] parameters = paramsText.Split(',');
         foreach (var item in parameters)
         {
-            if (!item.Contains('=')) continue;
-            string[] parts = item.Trim().Split('=');
-            string key = parts[0];
-            string valueString = parts[1];
+            int separator = item.IndexOf('=');
+            if (separator <= 0) continue;
+            string key = item.Substring(0, separator).Trim();
+            string valueString = item.Substring(separator + 1).Trim();
+            var invariant = CultureInfo.InvariantCulture;
 
-            if (int.TryParse(valueString, out int resInt))
+            if (int.TryParse(valueString, NumberStyles.Integer, invariant, out int resInt))
             {
-                paramsDict.Add(key, WTParamValue.FromDynamic(resInt));
+                paramsDict[key] = WTParamValue.FromDynamic(resInt);
                 continue;
             }
-            if (decimal.TryParse(valueString, out decimal resDecimal))
+            if (double.TryParse(valueString, NumberStyles.Float, invariant, out double resDouble))
             {
-                paramsDict.Add(key, WTParamValue.FromDynamic(resDecimal));
-                continue;
-            }
-            if (float.TryParse(valueString, out float resFloat))
-            {
-                paramsDict.Add(key, WTParamValue.FromDynamic(resFloat));
-                continue;
-            }
-            if (double.TryParse(valueString, out double resDouble))
-            {
-                paramsDict.Add(key, WTParamValue.FromDynamic(resDouble));
+                paramsDict[key] = WTParamValue.FromDynamic(resDouble);
                 continue;
             }
             if (bool.TryParse(valueString, out bool resBool))
             {
-                paramsDict.Add(key, WTParamValue.FromDynamic(resBool));
+                paramsDict[key] = WTParamValue.FromDynamic(resBool);
                 continue;
             }
-            paramsDict.Add(key, WTParamValue.FromDynamic(valueString));
+            paramsDict[key] = WTParamValue.FromDynamic(valueString);
         }
 
         WTEvent Event;
@@ -351,7 +361,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
             parameters: paramsDict
         );
         WiseTrack.TrackScreen(screen);
-        AddInfoLog($"TrackScreen called: {screenName} (params=1)");
+        AddInfoLog($"TrackScreen called: {screenName} (params={paramsDict.Count})");
     }
 
     void OnTrackScreenNoParamsClicked()
@@ -367,6 +377,11 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
 
     void OnGoToSecondSceneClicked()
     {
+        if (!Application.CanStreamedLevelBeLoaded("SecondScene"))
+        {
+            AddErrorLog("SecondScene is not in Build Settings. Add both sample scenes via File > Build Settings.");
+            return;
+        }
         AddInfoLog("Loading SecondScene...");
         SceneManager.LoadScene("SecondScene");
     }
@@ -376,12 +391,15 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         // Unsubscribe from deep link events
         WiseTrack.OnDeepLinkReceived -= OnDeepLinkReceived;
 
+#if WISETRACK_FIREBASE
         // Unsubscribe from Firebase events
         if (firebaseInitialized)
         {
             FirebaseMessaging.TokenReceived -= OnTokenReceived;
             FirebaseMessaging.MessageReceived -= OnMessageReceived;
         }
+#endif
+        WiseTrackLogger.RemoveLogger(this);
     }
 
     public void AddLog(string logText, Color? textColor = null)
@@ -444,7 +462,7 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         rectTransform.localScale = Vector3.one;
 
         Text textComponent = logObject.AddComponent<Text>();
-        textComponent.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        textComponent.font = GetBuiltinFont();
         textComponent.fontSize = 14;
         textComponent.color = textColor;
         textComponent.alignment = TextAnchor.MiddleLeft;
@@ -456,6 +474,27 @@ public class FormController : MonoBehaviour, IWiseTrackLogger
         sizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         return logObject;
+    }
+
+    private static Font builtinFont;
+
+    // The built-in font is "LegacyRuntime.ttf" since Unity 2022.2 and "Arial.ttf" before that.
+    private static Font GetBuiltinFont()
+    {
+        if (builtinFont != null) return builtinFont;
+        foreach (var fontName in new[] { "LegacyRuntime.ttf", "Arial.ttf" })
+        {
+            try
+            {
+                builtinFont = Resources.GetBuiltinResource<Font>(fontName);
+                if (builtinFont != null) break;
+            }
+            catch (ArgumentException)
+            {
+                // Not available in this Unity version, try the next one.
+            }
+        }
+        return builtinFont;
     }
 
     private System.Collections.IEnumerator UpdateLayoutAndScroll()

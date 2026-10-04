@@ -3,7 +3,7 @@ using System;
 /// <summary>
 /// Represents a type-safe wrapper for event/screen parameter values in WiseTrack.
 /// Supports string, numeric, and boolean values with validation and type conversion.
-/// String values have a maximum length of 50 characters.
+/// String values have a maximum length of 100 characters.
 /// </summary>
 public class WTParamValue
 {
@@ -25,23 +25,23 @@ public class WTParamValue
     /// <summary>
     /// Creates a new WTParamValue instance from a string value.
     /// </summary>
-    /// <param name="value">The string value to wrap. Maximum length is 50 characters.</param>
+    /// <param name="value">The string value to wrap. Maximum length is 100 characters.</param>
     /// <returns>A new WTParamValue containing the string value.</returns>
-    public static WTParamValue FromString(string value) => new(value);
+    public static WTParamValue FromString(string value) => new WTParamValue(value);
 
     /// <summary>
     /// Creates a new WTParamValue instance from a numeric value.
     /// </summary>
     /// <param name="value">The double value to wrap.</param>
     /// <returns>A new WTParamValue containing the numeric value.</returns>
-    public static WTParamValue FromNumber(double value) => new(value);
+    public static WTParamValue FromNumber(double value) => new WTParamValue(value);
 
     /// <summary>
     /// Creates a new WTParamValue instance from a boolean value.
     /// </summary>
     /// <param name="value">The boolean value to wrap.</param>
     /// <returns>A new WTParamValue containing the boolean value.</returns>
-    public static WTParamValue FromBoolean(bool value) => new(value);
+    public static WTParamValue FromBoolean(bool value) => new WTParamValue(value);
 
     /// <summary>
     /// Creates a new WTParamValue instance from a dynamic object value.
