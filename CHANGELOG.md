@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0]
+
+### Breaking
+
+- Android SDK 3.x (Google Play compliant); builds for other stores need an extra package (see README).
+- Revenue currency fix.
+
+### Added
+
+- Diagnostics support for AI-assisted integration.
+- Deep link handling improvements.
+
+### Docs
+
+- Documentation updates.
+
 ## [2.3.0]
 
 ### Enhanced

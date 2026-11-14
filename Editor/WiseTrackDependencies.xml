@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <dependencies>
   <androidPackages>
-    <androidPackage spec="io.wisetrack.sdk:core:2.5.0" />
+    <!-- core 3.x meets Google Play policies. Builds for other stores also need
+         io.wisetrack.sdk:core-tools with the same version: add it in your own
+         Assets/Editor/*Dependencies.xml for those builds (see README, "Store builds"). -->
+    <androidPackage spec="io.wisetrack.sdk:core:3.1.0" />
   </androidPackages>
 </dependencies>

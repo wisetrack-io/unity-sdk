@@ -146,9 +146,10 @@ The WiseTrack Android SDK detects the following optional libraries at runtime. A
 - **Referrer Tracking**: Enables install referrer tracking for Google Play and CafeBazaar. It is used automatically when the libraries are present.
 
   ```gradle
-  implementation 'io.wisetrack.sdk:referrer:2.0.0' // Replace with the latest version
+  implementation 'io.wisetrack.sdk:referrer:2.1.0' // Replace with the latest version
   implementation 'com.android.installreferrer:installreferrer:2.2' // Google Play referrer
-  implementation 'com.github.cafebazaar:referrersdk:1.0.2' // CafeBazaar referrer (needs JitPack)
+  implementation 'com.github.cafebazaar:ReferrerSDK:1.1.1' // CafeBazaar referrer (needs JitPack)
+  implementation 'ir.myket:referrersdk:1.0.3' // Myket referrer (repository https://maven.myket.ir)
   ```
 
   The CafeBazaar referrer is hosted on JitPack; add it to `settingsTemplate.gradle`:
@@ -171,6 +172,32 @@ The WiseTrack Android SDK detects the following optional libraries at runtime. A
 
 Build your project to make sure all dependencies are integrated: `File > Build Settings`, select Android, then `Build` or `Build and Run`.
 
+## Store Builds (Google Play and Other Stores)
+
+Since 3.0.0 the package uses the Android SDK `core` 3.x, which meets Google Play policies on its own.
+Builds for **other stores** (CafeBazaar, Myket, ...) also need `io.wisetrack.sdk:core-tools` with the
+same version; without it they send less device data and some panel features do not work. Add it only
+to those builds, for example with a second dependencies file that you include only when building for
+them (`Assets/Editor/WiseTrackToolsDependencies.xml`):
+
+```xml
+<dependencies>
+  <androidPackages>
+    <androidPackage spec="io.wisetrack.sdk:core-tools:3.1.0" />
+  </androidPackages>
+</dependencies>
+```
+
+Never ship it in a Google Play build. `OaidEnabled` needs `core-tools` too.
+
+## Diagnostics for AI Coding Agents
+
+Set `AgentDiagnostics = true` together with `UserEnvironment = WTUserEnvironment.Sandbox` while an AI
+coding agent integrates or debugs the SDK. The native Android SDK then writes one `[WT-AGENT] {json}`
+line per step to Logcat (`adb logcat -s WiseTrack-Agent:I`), whatever the log level: init, every
+server answer with its error code, queued requests and rejected events. The lines never contain the
+client secret, tokens, device ids or parameter values. Remove it before release.
+
 ## Initialization
 
 To start using the WiseTrack Unity Package, initialize it with a configuration object in your game’s startup script.
@@ -188,7 +215,7 @@ public class GameInitializer : MonoBehaviour
         {
             AppToken = "your-app-token",
             ClientSecret = "your-client-secret",
-            UserEnvironment = WTUserEnvironment.Production, // Use Sandbox for testing
+            UserEnvironment = WTUserEnvironment.Production, // default is Sandbox; use Sandbox while testing
             AndroidStore = WTAndroidStore.PlayStore,
             LogLevel = WTLogLevel.Warning
         };
@@ -295,12 +322,12 @@ var Params = new Dictionary<string, WTParamValue>
     { "param-2", WTParamValue.FromDynamic(2.3) },
     { "param-3", WTParamValue.FromDynamic(true) },
 };
-WTEvent Event = WTEvent.DefaultEvent("default-event", Params);
-WiseTrack.TrackEvent(Event);
+WTEvent defaultEvent = WTEvent.DefaultEvent("default-event", Params);
+WiseTrack.TrackEvent(defaultEvent);
 
-// Log a revenue event
-WTEvent Event = WTEvent.RevenueEvent("revenue-event", WTRevenueCurrency.IRR, 120000, Params);
-WiseTrack.TrackEvent(Event);
+// Log a revenue event (Ethereum is WTRevenueCurrency.ETH since 3.0.0)
+WTEvent revenueEvent = WTEvent.RevenueEvent("revenue-event", WTRevenueCurrency.IRR, 120000, Params);
+WiseTrack.TrackEvent(revenueEvent);
 ```
 **Limits:** event name 1-50 characters, parameter keys 1-50 characters, string parameter values up to 100 characters. Invalid events are rejected by the SDK; a warning is also printed in the Unity Console.
 
@@ -323,6 +350,11 @@ var config = new WTInitialConfig
 };
 WiseTrack.Initialize(config);
 ```
+
+Android opens the app only for links declared in an intent filter of the Unity activity: add the
+`<intent-filter>` (`VIEW`, `DEFAULT`, `BROWSABLE`, your scheme / host) to
+`Assets/Plugins/Android/AndroidManifest.xml` (Player Settings > Publishing Settings > Custom Main
+Manifest). A link that launches the app is handed to the SDK at initialization (since 3.0.0).
 
 #### Manual Tracking
 

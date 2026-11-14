@@ -18,6 +18,14 @@ public class WTInitialConfig
     public bool OaidEnabled = false;
     public bool AutoTrackScenes = true;
 
+    /// <summary>
+    /// Diagnostics for AI coding agents during integration. When true and <see cref="UserEnvironment"/>
+    /// is Sandbox, the native Android SDK writes one <c>[WT-AGENT] {json}</c> line per step to Logcat
+    /// (tag <c>WiseTrack-Agent</c>), whatever the log level. Secrets, tokens, device ids and parameter
+    /// values are never printed. No effect in Production. Remove before release.
+    /// </summary>
+    public bool AgentDiagnostics = false;
+
     public Dictionary<string, object> ToMap()
     {
         var map = new Dictionary<string, object>
@@ -35,6 +43,7 @@ public class WTInitialConfig
             { "deeplink_enabled", DeeplinkEnabled },
             { "log_level", (int)LogLevel },
             { "oaid_enabled", OaidEnabled },
+            { "agent_diagnostics", AgentDiagnostics },
         };
 
         return map;

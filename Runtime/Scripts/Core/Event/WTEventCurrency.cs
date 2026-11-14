@@ -26,6 +26,6 @@ public enum WTRevenueCurrency
     SAR,
     OMR,
     BTC,
-    EHT,
+    ETH,
     LTC,
 }

@@ -1,6 +1,6 @@
 {
   "name": "io.wisetrack.sdk.unity",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "displayName": "WiseTrack Unity SDK",
   "description": "WiseTrack analytics and attribution SDK for Unity (Android).\n\nRequires External Dependency Manager for Unity (EDM4U) to resolve the Android native SDK. See the README for installation steps.",
   "unity": "2019.4",

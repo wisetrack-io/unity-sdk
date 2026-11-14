@@ -46,6 +46,7 @@ object WiseTrackUnityPlugin {
             val deeplinkEnabled = json.optBoolean("deeplink_enabled", true)
             val logLevel = json.optInt("log_level", 5)
             val oaidEnabled = json.optBoolean("oaid_enabled", false)
+            val agentDiagnostics = json.optBoolean("agent_diagnostics", false)
 
             val activity = getActivity()
 
@@ -66,7 +67,9 @@ object WiseTrackUnityPlugin {
                 logLevel = WTLogLevel.fromPriority(logLevel),
                 oaidEnabled = oaidEnabled,
                 screenTrackingConfig = WTScreenAutoTrackingConfig(enabled = false),
-            )
+            ).apply {
+                this.agentDiagnostics = agentDiagnostics
+            }
 
             // Register the deeplink listener before initialize, so a deeplink dispatched during
             // initialization is not lost.
@@ -74,6 +77,9 @@ object WiseTrackUnityPlugin {
             registerDeeplinkListener()
 
             WiseTrack.initialize(activity, config)
+            // C# initializes after the Unity activity resumed, so the native lifecycle callbacks
+            // never saw the link that launched the app: hand it over (handled once).
+            activity.intent?.takeIf { it.data != null }?.let { WiseTrack.processDeeplink(it) }
         } catch (e: Exception) {
             // Never log the config itself: it contains the client secret.
             Log.e(TAG, "Failed to initialize WiseTrack: ${e.message}", e)

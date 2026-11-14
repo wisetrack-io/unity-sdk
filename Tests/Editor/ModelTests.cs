@@ -5,6 +5,16 @@ using NUnit.Framework;
 
 public class ModelTests
 {
+    [Test]
+    public void InitialConfigMapCarriesAgentDiagnostics()
+    {
+        var off = new WTInitialConfig { AppToken = "a", ClientSecret = "b" }.ToMap();
+        var on = new WTInitialConfig { AppToken = "a", ClientSecret = "b", AgentDiagnostics = true }.ToMap();
+
+        Assert.AreEqual(false, off["agent_diagnostics"]);
+        Assert.AreEqual(true, on["agent_diagnostics"]);
+    }
+
     [TestCase(WTScreenType.Page, "page")]
     [TestCase(WTScreenType.Dialog, "dialog")]
     [TestCase(WTScreenType.BottomSheet, "bottom_sheet")]
